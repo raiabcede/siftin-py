@@ -89,7 +89,7 @@ def scrape_linkedin_search(
     search_url: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False
 ) -> List[Dict]:
     """
@@ -446,7 +446,7 @@ def extract_profile_links(
     search_url: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False,
     return_by_page: bool = False
 ):
@@ -674,7 +674,7 @@ def extract_names_only(
     search_url: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False,
     return_by_page: bool = False
 ):
@@ -1597,7 +1597,7 @@ async def scrape_linkedin_search_async(
     search_url: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False
 ) -> List[Dict]:
     """
@@ -1627,7 +1627,7 @@ def extract_and_filter_names(
     ai_criteria: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False
 ) -> List[Dict]:
     """
@@ -1691,7 +1691,7 @@ async def extract_profile_links_async(
     search_url: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False,
     return_by_page: bool = False
 ):
@@ -1722,7 +1722,7 @@ async def extract_names_only_async(
     search_url: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False,
     return_by_page: bool = False
 ):
@@ -1754,7 +1754,7 @@ async def extract_and_filter_names_async(
     ai_criteria: str,
     firefox_profile_path: Optional[str] = None,
     max_results: int = 50,
-    max_pages: int = 10,
+    max_pages: int = 1,
     headless: bool = False
 ) -> List[Dict]:
     """

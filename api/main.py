@@ -486,7 +486,7 @@ async def find_leads(request: FindLeadsRequest):
                 search_url=request.linkedin_url,
                 firefox_profile_path=firefox_profile_path,
                 max_results=50,
-                max_pages=10,
+                max_pages=1,
                 headless=False  # Set to True for headless mode
             )
             
@@ -636,7 +636,7 @@ async def extract_names(request: ExtractNamesRequest):
                     ai_criteria=request.ai_criteria.strip(),
                     firefox_profile_path=firefox_profile_path,
                     max_results=request.max_results or 50,
-                    max_pages=request.max_pages or 10,
+                    max_pages=request.max_pages or 1,
                     headless=False  # Set to True for headless mode
                 )
                 
@@ -671,7 +671,7 @@ async def extract_names(request: ExtractNamesRequest):
                     search_url=request.linkedin_url,
                     firefox_profile_path=firefox_profile_path,
                     max_results=request.max_results or 50,
-                    max_pages=request.max_pages or 10,
+                    max_pages=request.max_pages or 1,
                     headless=False,  # Set to True for headless mode
                     return_by_page=True  # Get names grouped by page
                 )
@@ -775,7 +775,7 @@ async def extract_links(request: ExtractLinksRequest):
                 search_url=request.linkedin_url,
                 firefox_profile_path=firefox_profile_path,
                 max_results=request.max_results or 50,
-                max_pages=request.max_pages or 10,
+                max_pages=request.max_pages or 1,
                 headless=False,  # Set to True for headless mode
                 return_by_page=True  # Get links grouped by page
             )
