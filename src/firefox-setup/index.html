@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-color-theme="Green_Theme" class="selected"
+	data-layout="vertical" data-boxed-layout="full" data-card="shadow">
+
+	<head>
+		@@include("../partials/head.html")
+		<title>Firefox Profile Setup - Siftin</title>
+	</head>
+
+	<body class="DEFAULT_THEME  bg-white dark:bg-dark">
+		<main>
+			<!--start the project-->
+			<div id="main-wrapper" class="flex">
+
+				<aside id="application-sidebar-brand"
+					class="hs-overlay hs-overlay-open:translate-x-0 -translate-x-full xl:rtl:-translate-x-0 rtl:translate-x-full  left-0 rtl:left-auto rtl:right-0 transform hidden xl:block xl:translate-x-0 xl:end-auto xl:bottom-0 fixed top-0 with-vertical  left-sidebar transition-all duration-300 h-screen z-[2] flex-shrink-0 border-r rtl:border-l rtl:border-r-0 w-[270px] border-border dark:border-darkborder bg-white dark:bg-dark">
+					@@include("../partials/sidebar.html",{ "page": "firefox-setup" })
+				</aside>
+				<div class="page-wrapper w-full" role="main">
+					<!--  Header Start -->
+					<header
+						class="sticky top-header top-0 inset-x-0 z-[1] flex flex-wrap md:justify-start md:flex-nowrap text-sm bg-white dark:bg-dark ">
+					<div
+						class="with-vertical w-full">@@include("../partials/header.html")</div>
+					<div class="with-horizontal w-full">
+						<div class="bg-white dark:bg-dark shadow-md dark:shadow-dark-md">
+							<div class="container">
+								@@include("../partials/horizontal-header.html")
+							</div>
+						</div>
+					</div>
+					</header>
+					<!--  Header End -->
+
+					<!-- Horizontal Header Menu -->
+					<aside class="with-horizontal lg:flex hidden">
+						@@include("../partials/horizontal-sidebar.html", { "page": "firefox-setup",
+						})
+					</aside>
+					<!-- Horizontal Header Menu End -->
+
+					<!-- Main Content -->
+					<main class="h-full max-w-full pt-6">
+						<div class="container full-container py-5">
+							<!-- Page Title -->
+							<div class="mb-8">
+								<div class="flex items-center justify-between mb-2">
+									<div>
+										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">Firefox Profile Setup</h1>
+										<p class="text-base text-link dark:text-darklink">Configure your Firefox profile for LinkedIn authentication</p>
+									</div>
+								</div>
+							</div>
+
+							<!-- Setup Card -->
+							<div class="card shadow-lg mb-6">
+								<div class="card-body p-8">
+									<!-- Current Status -->
+									<div id="profile-status" class="mb-6">
+										<div class="flex items-center gap-3 mb-4">
+											<div id="status-icon" class="w-4 h-4 rounded-full bg-gray-400"></div>
+											<h3 class="text-lg font-semibold text-dark dark:text-white">Current Status</h3>
+										</div>
+										<div id="status-message" class="text-sm text-link dark:text-darklink mb-4">
+											Loading...
+										</div>
+										<div id="current-profile-path" class="p-3 bg-lightsecondary dark:bg-darksecondary rounded-md font-mono text-xs text-dark dark:text-white break-all hidden">
+										</div>
+									</div>
+
+									<!-- Profile Path Input -->
+									<div class="mb-6">
+										<label class="block text-sm font-medium text-dark dark:text-white mb-2">
+											Firefox Profile Path
+										</label>
+										<div class="flex gap-2">
+											<input 
+												type="text" 
+												id="profile-path-input" 
+												class="form-control flex-1" 
+												placeholder="C:\Users\YourName\AppData\Roaming\Mozilla\Firefox\Profiles\your-profile"
+											/>
+											<button 
+												id="validate-btn" 
+												class="btn btn-primary"
+												onclick="validateProfilePath()"
+											>
+												Validate
+											</button>
+										</div>
+										<p class="text-xs text-link dark:text-darklink mt-2">
+											Enter the full path to your Firefox profile directory
+										</p>
+									</div>
+
+									<!-- Instructions -->
+									<div class="border-t border-border dark:border-darkborder pt-6">
+										<h3 class="text-lg font-semibold text-dark dark:text-white mb-4">How to Find Your Firefox Profile Path</h3>
+										
+										<!-- Windows Instructions -->
+										<div id="windows-instructions" class="mb-6">
+											<h4 class="text-base font-medium text-dark dark:text-white mb-3 flex items-center gap-2">
+												<i class="ti ti-brand-windows text-primary"></i>
+												Windows
+											</h4>
+											<ol class="list-decimal list-inside space-y-2 text-sm text-link dark:text-darklink">
+												<li>Open Firefox</li>
+												<li>Type <code class="bg-lightsecondary dark:bg-darksecondary px-2 py-1 rounded">about:profiles</code> in the address bar and press Enter</li>
+												<li>Find your profile (usually "default-release" or "default")</li>
+												<li>Click "Open Folder" next to "Root Directory"</li>
+												<li>Copy the full path from the address bar</li>
+											</ol>
+											<div class="mt-4 p-4 bg-lightsecondary dark:bg-darksecondary rounded-md">
+												<p class="text-xs text-link dark:text-darklink mb-2 font-semibold">Default Location:</p>
+												<code class="text-xs text-dark dark:text-white break-all">
+													C:\Users\[YourUsername]\AppData\Roaming\Mozilla\Firefox\Profiles\[profile-name]
+												</code>
+											</div>
+										</div>
+
+										<!-- macOS Instructions -->
+										<div id="macos-instructions" class="mb-6">
+											<h4 class="text-base font-medium text-dark dark:text-white mb-3 flex items-center gap-2">
+												<i class="ti ti-brand-apple text-primary"></i>
+												macOS
+											</h4>
+											<ol class="list-decimal list-inside space-y-2 text-sm text-link dark:text-darklink">
+												<li>Open Firefox</li>
+												<li>Type <code class="bg-lightsecondary dark:bg-darksecondary px-2 py-1 rounded">about:profiles</code> in the address bar and press Enter</li>
+												<li>Find your profile (usually "default-release" or "default")</li>
+												<li>Click "Open Folder" next to "Root Directory"</li>
+												<li>Copy the full path from the address bar</li>
+											</ol>
+											<div class="mt-4 p-4 bg-lightsecondary dark:bg-darksecondary rounded-md">
+												<p class="text-xs text-link dark:text-darklink mb-2 font-semibold">Default Location:</p>
+												<code class="text-xs text-dark dark:text-white break-all">
+													~/Library/Application Support/Firefox/Profiles/[profile-name]
+												</code>
+											</div>
+										</div>
+
+										<!-- Linux Instructions -->
+										<div id="linux-instructions" class="mb-6">
+											<h4 class="text-base font-medium text-dark dark:text-white mb-3 flex items-center gap-2">
+												<i class="ti ti-brand-linux text-primary"></i>
+												Linux
+											</h4>
+											<ol class="list-decimal list-inside space-y-2 text-sm text-link dark:text-darklink">
+												<li>Open Firefox</li>
+												<li>Type <code class="bg-lightsecondary dark:bg-darksecondary px-2 py-1 rounded">about:profiles</code> in the address bar and press Enter</li>
+												<li>Find your profile (usually "default-release" or "default")</li>
+												<li>Click "Open Folder" next to "Root Directory"</li>
+												<li>Copy the full path from the address bar</li>
+											</ol>
+											<div class="mt-4 p-4 bg-lightsecondary dark:bg-darksecondary rounded-md">
+												<p class="text-xs text-link dark:text-darklink mb-2 font-semibold">Default Location:</p>
+												<code class="text-xs text-dark dark:text-white break-all">
+													~/.mozilla/firefox/[profile-name]
+												</code>
+											</div>
+										</div>
+									</div>
+
+									<!-- Important Notes -->
+									<div class="border-t border-border dark:border-darkborder pt-6">
+										<h3 class="text-lg font-semibold text-dark dark:text-white mb-4">Important Notes</h3>
+										<ul class="list-disc list-inside space-y-2 text-sm text-link dark:text-darklink">
+											<li>Make sure you are logged into LinkedIn in your Firefox browser before using this profile</li>
+											<li>The profile path must point to a directory (folder), not a file</li>
+											<li>After setting the profile path, you'll need to add it to your <code class="bg-lightsecondary dark:bg-darksecondary px-2 py-1 rounded">api/.env</code> file</li>
+											<li>Restart the API server after updating the environment variable</li>
+										</ul>
+									</div>
+
+									<!-- Environment Variable Setup -->
+									<div class="border-t border-border dark:border-darkborder pt-6 mt-6">
+										<h3 class="text-lg font-semibold text-dark dark:text-white mb-4">Setting the Environment Variable</h3>
+										<div class="p-4 bg-lightsecondary dark:bg-darksecondary rounded-md">
+											<p class="text-sm text-link dark:text-darklink mb-3">
+												After validating your profile path, add this line to your <code class="bg-white dark:bg-dark px-2 py-1 rounded">api/.env</code> file:
+											</p>
+											<div id="env-var-display" class="p-3 bg-white dark:bg-dark rounded border border-border dark:border-darkborder font-mono text-xs text-dark dark:text-white break-all">
+												FIREFOX_PROFILE_PATH=
+											</div>
+											<button 
+												id="copy-env-btn" 
+												class="btn btn-sm btn-outline-primary mt-3"
+												onclick="copyEnvVariable()"
+											>
+												<i class="ti ti-copy"></i> Copy to Clipboard
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Test Connection Card -->
+							<div class="card shadow-lg">
+								<div class="card-body p-8">
+									<h3 class="text-lg font-semibold text-dark dark:text-white mb-4">Test LinkedIn Connection</h3>
+									<p class="text-sm text-link dark:text-darklink mb-4">
+										After setting up your Firefox profile, test if you're logged into LinkedIn:
+									</p>
+									<button 
+										id="test-connection-btn" 
+										class="btn btn-primary"
+										onclick="testLinkedInConnection()"
+									>
+										<i class="ti ti-check"></i> Test Connection
+									</button>
+									<div id="test-result" class="mt-4 hidden">
+									</div>
+								</div>
+							</div>
+						</div>
+					</main>
+				</div>
+			</div>
+		</main>
+		@@include("../partials/scripts.html")
+		
+		<script>
+			// Load current profile status on page load
+			document.addEventListener('DOMContentLoaded', function() {
+				loadProfileStatus();
+			});
+
+			async function loadProfileStatus() {
+				try {
+					const response = await fetch('http://localhost:8000/api/firefox-profile');
+					const data = await response.json();
+					
+					const statusIcon = document.getElementById('status-icon');
+					const statusMessage = document.getElementById('status-message');
+					const currentPath = document.getElementById('current-profile-path');
+					const profileInput = document.getElementById('profile-path-input');
+					
+					if (data.configured) {
+						statusIcon.className = 'w-4 h-4 rounded-full ' + (data.exists && data.is_directory ? 'bg-green-500' : 'bg-yellow-500');
+						statusMessage.textContent = data.exists && data.is_directory 
+							? 'Firefox profile is configured and valid' 
+							: 'Firefox profile path is configured but invalid';
+						
+						if (data.profile_path) {
+							currentPath.textContent = data.profile_path;
+							currentPath.classList.remove('hidden');
+							profileInput.value = data.profile_path;
+							updateEnvVariable(data.profile_path);
+						}
+					} else {
+						statusIcon.className = 'w-4 h-4 rounded-full bg-gray-400';
+						statusMessage.textContent = 'Firefox profile path is not configured';
+					}
+				} catch (error) {
+					console.error('Error loading profile status:', error);
+					document.getElementById('status-message').textContent = 'Error loading profile status';
+				}
+			}
+
+			async function validateProfilePath() {
+				const input = document.getElementById('profile-path-input');
+				const path = input.value.trim();
+				
+				if (!path) {
+					alert('Please enter a profile path');
+					return;
+				}
+
+				try {
+					const response = await fetch('http://localhost:8000/api/firefox-profile', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ profile_path: path })
+					});
+
+					const data = await response.json();
+					
+					if (data.success) {
+						alert('✓ Profile path is valid!\n\n' + data.note);
+						updateEnvVariable(path);
+						loadProfileStatus();
+					} else {
+						alert('✗ ' + data.message);
+					}
+				} catch (error) {
+					console.error('Error validating profile path:', error);
+					alert('Error validating profile path');
+				}
+			}
+
+			function updateEnvVariable(path) {
+				const envDisplay = document.getElementById('env-var-display');
+				envDisplay.textContent = `FIREFOX_PROFILE_PATH=${path}`;
+			}
+
+			function copyEnvVariable() {
+				const envDisplay = document.getElementById('env-var-display');
+				const text = envDisplay.textContent;
+				
+				navigator.clipboard.writeText(text).then(() => {
+					const btn = document.getElementById('copy-env-btn');
+					const originalText = btn.innerHTML;
+					btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+					setTimeout(() => {
+						btn.innerHTML = originalText;
+					}, 2000);
+				});
+			}
+
+			async function testLinkedInConnection() {
+				const btn = document.getElementById('test-connection-btn');
+				const resultDiv = document.getElementById('test-result');
+				
+				btn.disabled = true;
+				btn.innerHTML = '<i class="ti ti-loader"></i> Testing...';
+				resultDiv.classList.add('hidden');
+				
+				try {
+					const response = await fetch('http://localhost:8000/api/linkedin-login-status');
+					const data = await response.json();
+					
+					resultDiv.classList.remove('hidden');
+					
+					if (data.logged_in === true) {
+						resultDiv.className = 'mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800';
+						resultDiv.innerHTML = `
+							<div class="flex items-center gap-2 text-green-700 dark:text-green-400">
+								<i class="ti ti-check-circle text-xl"></i>
+								<span class="font-semibold">Successfully connected to LinkedIn!</span>
+							</div>
+							<p class="text-sm text-green-600 dark:text-green-300 mt-2">${data.message}</p>
+						`;
+					} else if (data.logged_in === false) {
+						resultDiv.className = 'mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800';
+						resultDiv.innerHTML = `
+							<div class="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+								<i class="ti ti-alert-circle text-xl"></i>
+								<span class="font-semibold">Not logged into LinkedIn</span>
+							</div>
+							<p class="text-sm text-yellow-600 dark:text-yellow-300 mt-2">${data.message || data.note}</p>
+						`;
+					} else {
+						resultDiv.className = 'mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-md border border-gray-200 dark:border-gray-800';
+						resultDiv.innerHTML = `
+							<div class="flex items-center gap-2 text-gray-700 dark:text-gray-400">
+								<i class="ti ti-info-circle text-xl"></i>
+								<span class="font-semibold">${data.status || 'Unknown status'}</span>
+							</div>
+							<p class="text-sm text-gray-600 dark:text-gray-300 mt-2">${data.message || data.note || 'Unable to determine connection status'}</p>
+						`;
+					}
+				} catch (error) {
+					resultDiv.classList.remove('hidden');
+					resultDiv.className = 'mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-200 dark:border-red-800';
+					resultDiv.innerHTML = `
+						<div class="flex items-center gap-2 text-red-700 dark:text-red-400">
+							<i class="ti ti-x-circle text-xl"></i>
+							<span class="font-semibold">Error testing connection</span>
+						</div>
+						<p class="text-sm text-red-600 dark:text-red-300 mt-2">${error.message}</p>
+					`;
+				} finally {
+					btn.disabled = false;
+					btn.innerHTML = '<i class="ti ti-check"></i> Test Connection';
+				}
+			}
+		</script>
+	</body>
+</html>
+

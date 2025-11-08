@@ -83,6 +83,14 @@ const Routes = {
       active: false
     },
     {
+      id: 'firefox-setup',
+      page: 'firefox-setup',
+      path: '/firefox-setup/',
+      title: 'Firefox Setup',
+      icon: 'ti-brand-firefox',
+      active: false
+    },
+    {
       id: 'settings',
       page: 'settings',
       path: '/index.html',
