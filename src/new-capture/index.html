@@ -130,12 +130,13 @@
 										</div>
 									</div>
 
-									<!-- Step 2: AI Criteria -->
+									<!-- Step 2: AI Criteria (Optional) -->
 									<div id="step-2-content" class="step-content hidden">
-										<h2 class="text-2xl font-bold text-dark dark:text-white mb-6">Step 2: Define AI Criteria</h2>
+										<h2 class="text-2xl font-bold text-dark dark:text-white mb-6">Step 2: Define AI Criteria (Optional)</h2>
+										<p class="text-sm text-link dark:text-darklink mb-4">You can skip this step and extract all profile links, then filter later if needed.</p>
 										
 										<div class="mb-4">
-											<label for="ai-criteria" class="block text-sm font-semibold text-dark dark:text-white mb-2">Describe the leads you want (natural language)</label>
+											<label for="ai-criteria" class="block text-sm font-semibold text-dark dark:text-white mb-2">Describe the leads you want (natural language) - Optional</label>
 											<textarea 
 												id="ai-criteria" 
 												rows="5" 
@@ -167,7 +168,7 @@
 												<i class="ti ti-arrow-left mr-2"></i> Back
 											</button>
 											<button id="step2-preview-btn" onclick="nextStep(3)" class="btn btn-primary flex items-center cursor-pointer">
-												Preview Matches <i class="ti ti-arrow-right ml-2"></i>
+												Extract Profile Links <i class="ti ti-arrow-right ml-2"></i>
 											</button>
 										</div>
 									</div>
@@ -175,7 +176,7 @@
 									<!-- Step 3: Preview & Select -->
 									<div id="step-3-content" class="step-content hidden">
 										<div class="flex justify-between items-center mb-6">
-											<h2 class="text-2xl font-bold text-dark dark:text-white">Step 3: Preview & Select Leads</h2>
+											<h2 class="text-2xl font-bold text-dark dark:text-white">Step 3: Preview & Select Profile Links</h2>
 											<div class="flex items-center gap-4">
 												<span class="text-sm text-link dark:text-darklink" id="lead-count">0 selected</span>
 												<button onclick="selectAll()" class="px-4 py-2 border border-border dark:border-darkborder rounded-md text-sm text-dark dark:text-white hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white cursor-pointer transition-colors">Select All</button>
@@ -291,6 +292,7 @@
 			let currentStep = 1;
 			let selectedLeads = [];
 			let foundLeads = [];
+			let extractedLinks = []; // Store extracted profile links
 			let linkedinUrl = '';
 			let aiCriteria = '';
 			let extractedKeywords = '';
@@ -472,14 +474,9 @@
 				}
 				
 				if (step === 3) {
-					// Validate AI criteria and fetch leads
+					// Step 3: Extract profile links (AI criteria is optional, stored for later use)
 					const criteriaInput = document.getElementById('ai-criteria');
 					aiCriteria = criteriaInput?.value?.trim() || '';
-					
-					if (!aiCriteria) {
-						showError('Please enter AI criteria');
-						return;
-					}
 					
 					if (!linkedinUrl) {
 						showError('LinkedIn URL is required. Please go back to step 1.');
@@ -494,7 +491,7 @@
 						// Show loading state
 						if (previewBtn) {
 							previewBtn.disabled = true;
-							previewBtn.innerHTML = '<span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>Finding leads...';
+							previewBtn.innerHTML = '<span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>Extracting links...';
 						}
 						
 						// Update step indicator first to show step 3
@@ -503,7 +500,7 @@
 						
 						showLoading('leads-list', true);
 						
-						// Double-check URL is a search URL before sending to BrightData
+						// Double-check URL is a search URL
 						if (!linkedinUrl || !linkedinUrl.includes('/search/results/people')) {
 							showLoading('leads-list', false);
 							if (previewBtn) {
@@ -515,7 +512,7 @@
 							return;
 						}
 						
-						console.log('[Step 3] Fetching leads with:', { linkedin_url: linkedinUrl, ai_criteria: aiCriteria });
+						console.log('[Step 3] Extracting profile links from:', linkedinUrl);
 						
 						// Show a message that this may take a while
 						const leadsList = document.getElementById('leads-list');
@@ -524,7 +521,7 @@
 								<div class="text-center py-8">
 									<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-6 mb-4">
 										<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
-										<h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Fetching Leads...</h3>
+										<h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Extracting Profile Links...</h3>
 										<p class="text-sm text-blue-700 dark:text-blue-300 mb-2">
 											This may take 1-3 minutes. The browser will open automatically for LinkedIn login if needed.
 										</p>
@@ -536,10 +533,12 @@
 							`;
 						}
 						
-						// Use longer timeout for find-leads (5 minutes)
-						const result = await apiCall('/api/capture/find-leads', 'POST', {
+						// Use extract-links endpoint instead of find-leads
+						// Use longer timeout for extraction (5 minutes)
+						const result = await apiCall('/api/capture/extract-links', 'POST', {
 							linkedin_url: linkedinUrl,
-							ai_criteria: aiCriteria
+							max_results: 100,
+							max_pages: 10
 						}, 300000); // 5 minutes timeout
 						
 						console.log('[Step 3] API response received:', result);
@@ -548,80 +547,47 @@
 							throw new Error('Invalid response from API');
 						}
 						
-						// Check if login is required
-						if (result.requires_login) {
-							console.log('[Step 3] Login/Configuration required');
-							showLoading('leads-list', false);
-							
-							const leadsList = document.getElementById('leads-list');
-							if (leadsList) {
-								const loginUrl = result.login_url || 'https://brightdata.com/cp/dashboard';
-								leadsList.innerHTML = `
-									<div class="text-center py-8">
-										<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-6 mb-4">
-											<i class="ti ti-settings text-blue-600 dark:text-blue-400 text-4xl mb-4"></i>
-											<h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">LinkedIn Authentication Required</h3>
-											<p class="text-sm text-blue-700 dark:text-blue-300 mb-3">
-												Your BrightData collector needs LinkedIn authentication configured. LinkedIn requires login to access search results.
-											</p>
-											<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4 mb-4 text-left">
-												<p class="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">To configure LinkedIn authentication in BrightData:</p>
-												<ol class="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 list-decimal list-inside">
-													<li>Go to your <a href="${loginUrl}" target="_blank" class="underline">BrightData Dashboard</a></li>
-													<li>Navigate to your LinkedIn collector (ID: <code class="bg-white dark:bg-dark px-1 rounded">${result.collector_id || 'your-collector-id'}</code>)</li>
-													<li>Go to <strong>Settings</strong> → <strong>Authentication</strong> or <strong>Session Management</strong></li>
-													<li>Add your LinkedIn session cookies (li_at, JSESSIONID) or configure LinkedIn login credentials</li>
-													<li>Save the configuration and wait a few minutes for it to take effect</li>
-													<li>Try again after authentication is configured</li>
-												</ol>
-												<p class="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-													<strong>Note:</strong> You may need to log into LinkedIn in a browser, extract session cookies, and add them to your BrightData collector settings.
-												</p>
-											</div>
-											<div class="flex gap-3 justify-center">
-												<a href="${loginUrl}" target="_blank" class="btn btn-primary">
-													<i class="ti ti-external-link mr-2"></i> Open BrightData Dashboard
-												</a>
-												<button onclick="nextStep(3)" class="btn btn-secondary">
-													<i class="ti ti-refresh mr-2"></i> Try Again
-												</button>
-											</div>
-											<p class="text-xs text-blue-600 dark:text-blue-400 mt-4">
-												Note: BrightData collectors need to be configured with LinkedIn authentication in the dashboard.
-											</p>
-										</div>
-									</div>
-								`;
-							}
-							
-							// Restore button
-							if (previewBtn) {
-								previewBtn.disabled = false;
-								previewBtn.innerHTML = originalBtnText;
-							}
-							return;
+						if (!result.success) {
+							throw new Error(result.errors?.[0] || 'Failed to extract profile links');
 						}
 						
-						if (!result.leads) {
-							throw new Error('Invalid response from API');
-						}
+						// Extract links from response
+						extractedLinks = result.links || [];
+						console.log('[Step 3] Extracted links:', extractedLinks.length);
 						
-					foundLeads = result.leads || [];
-					console.log('[Step 3] Found leads:', foundLeads.length);
-					
-					// Hide loading spinner
-					showLoading('leads-list', false);
-					
-					if (foundLeads.length === 0) {
-						generateLeadsList(); // This will show "No leads found"
-						document.getElementById('mock-data-notice')?.classList.add('hidden');
-					} else {
-						// Update count immediately
-						updateLeadCount();
-						generateLeadsList();
-						// Show mock data notice
-						document.getElementById('mock-data-notice')?.classList.remove('hidden');
-					}
+						// Convert links to lead format for display
+						foundLeads = extractedLinks.map((link, index) => {
+							// Extract profile ID from URL
+							const profileId = link.split('/in/')[1]?.split('?')[0]?.split('/')[0] || `profile-${index}`;
+							return {
+								id: profileId,
+								name: profileId.replace(/-/g, ' '), // Use profile ID as placeholder name
+								title: '',
+								company: '',
+								location: '',
+								match_score: 0,
+								description: '',
+								linkedin_url: link,
+								email: null,
+								profile_image: null,
+								created_at: new Date().toISOString(),
+								is_mock: false
+							};
+						});
+						
+						// Hide loading spinner
+						showLoading('leads-list', false);
+						
+						if (foundLeads.length === 0) {
+							generateLeadsList(); // This will show "No leads found"
+							document.getElementById('mock-data-notice')?.classList.add('hidden');
+						} else {
+							// Update count immediately
+							updateLeadCount();
+							generateLeadsList();
+							// Hide mock data notice since these are real links
+							document.getElementById('mock-data-notice')?.classList.add('hidden');
+						}
 						
 						// Restore button
 						if (previewBtn) {
