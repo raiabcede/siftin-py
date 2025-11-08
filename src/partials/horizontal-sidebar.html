@@ -1,0 +1,62 @@
+<nav class="relative border-b border-border dark:border-darkborder py-4">
+    <div class="container">
+        <div class="flex gap-3 items-center">
+            <!-- Single Menu Link -->
+            <a class="horizontal-menu   
+                 @@if (context.page === 'sample page 1') { bg-primary text-white dark:text-white hover:bg-primary hover:text-white dark:hover:text-white  }"
+                href="@@webRoot/new-capture/">
+                <i class="ti ti-brand-chrome text-lg"></i>
+                Sample Page 1
+            </a>
+
+            <a class="horizontal-menu  
+            @@if (context.page === 'sample page 2') { bg-primary text-white dark:text-white hover:bg-primary hover:text-white dark:hover:text-white}"
+                href="@@webRoot/index2.html">
+                <i class="ti ti-dashboard text-lg"></i>
+                Sample Page 2
+            </a>
+
+            <!-- Dropdown Menu / Multilevel -->
+            <div
+                class="hs-dropdown  [--strategy:static] lg:[--strategy:absolute] [--adaptive:none] sm:[--trigger:hover] relative">
+                <button type="button"
+                    class="horizontal-menu
+                    @@if (context.page_group == 'dropdown') { bg-primary text-white dark:text-white hover:bg-primary hover:text-white}    
+                    ">
+                    <i class="ti ti-box-multiple text-lg"></i>
+                    Menu Level <i class="ti ti-chevron-down  ms-auto  text-md"></i>
+                </button>
+                <div
+                    class="py-4 px-3 hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] sm:duration-[150ms] hs-dropdown-open:opacity-100 opacity-0 left-0 hidden z-10 sm:mt-4 top-full start-0 min-w-64  before:absolute lg:bg-white bg-transparent dark:bg-dark lg:shadow-md shadow-none">
+                    <a class="horizontal-link
+                        @@if (context.page_group == 'dropdown') { active horizontal-link-active }
+                        "
+                        href="@@webRoot/submenu.html">
+                        <i class="ti ti-circle text-xs"></i>Level 1
+                    </a>
+                    <div
+                        class="hs-dropdown relative [--strategy:static] sm:[--strategy:absolute] [--adaptive:none] sm:[--trigger:hover]">
+                        <button type="button"
+                            class="horizontal-link  w-full">
+                            <i class="ti ti-circle text-xs"></i>
+                            Level 2
+                            <i class="ti ti-chevron-right ms-auto text-md"></i>
+                        </button>
+                        <div
+                            class="py-4 px-3 hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] sm:duration-[150ms] hs-dropdown-open:opacity-100 opacity-0  min-w-64 hidden z-10 sm:mt-2  before:absolute  before:-start-5 before:top-0 before:h-full before:w-5 top-0 start-full !mx-[10px]">
+                            <a class="horizontal-link "
+                                href="#">
+                                <i class="ti ti-circle text-xs"></i>
+                                Level 2.1
+                            </a>
+                            <a class="horizontal-link "
+                                href="#">
+                                <i class="ti ti-circle text-xs"></i>
+                                Level 2.2
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+</nav>

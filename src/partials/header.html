@@ -1,0 +1,80 @@
+<div class="w-full mx-auto px-4 lg:py-1 py-3 lg:px-4" aria-label="Global">
+  <div class="relative md:flex md:items-center md:justify-between">
+    <div class="hs-collapse  grow md:block">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="flex lg:hidden w-10 md:w-full overflow-hidden">@@include("./logo-sidebar.html")
+          </div>
+          <div class="relative">
+            <a class="xl:flex hidden text-xl icon-hover cursor-pointer text-link dark:text-darklink sidebartoggler h-10 w-10 hover:text-primary hover:bg-lightprimary dark:hover:bg-darkprimary  justify-center items-center rounded-full"
+              id="headerCollapse" href="javascript:void(0)">
+              <i class="ti ti-menu-2 relative z-[1] "></i>
+            </a>
+            <!--Mobile Sidebar Toggle -->
+            <div class="sticky top-0 inset-x-0 xl:hidden">
+              <div class="flex items-center">
+                <!-- Navigation Toggle -->
+                <a class="text-xl icon-hover cursor-pointer text-link dark:text-darklink sidebartoggler h-10 w-10 hover:text-primary hover:bg-lightprimary dark:hover:bg-darkprimary flex justify-center items-center rounded-full"
+                  data-hs-overlay="#application-sidebar-brand" aria-controls="application-sidebar-brand"
+                  aria-label="Toggle navigation">
+                  <i class="ti ti-menu-2 relative z-[1] "></i>
+                </a>
+                <!-- End Navigation Toggle -->
+              </div>
+            </div>
+            <!-- End Sidebar Toggle -->
+          </div>
+
+          <a class="hidden lg:flex relative hs-dropdown-toggle cursor-pointer text-xl hover:text-primary text-link dark:text-darklink h-10 w-10 hover:bg-lightprimary dark:hover:bg-darkprimary  justify-center items-center rounded-full"
+            data-hs-overlay="#hs-focus-management-modal">
+            <i class="ti ti-search relative"></i>
+          </a>
+
+          <div class="lg:hidden">
+            <button type="button"
+              class="p-2 inline-flex h-10 w-10 text-link dark:text-darklink hover:text-primary hover:bg-lightprimary dark:hover:bg-darkprimary  justify-center items-center rounded-full"
+              data-hs-overlay="#navbar-offcanvas-example-menu" aria-controls="navbar-offcanvas-example-menu"
+              aria-label="Toggle navigation">
+              <i class="ti ti-apps text-xl"></i>
+            </button>
+          </div>
+
+          <!-- Menu-->
+          <div id="navbar-offcanvas-example"
+            class="hs-overlay hs-overlay-open:translate-x-0 z-[2] -translate-x-full fixed top-0 start-0 transition-all duration-300 transform h-full max-w-xs bg-white dark:bg-dark  basis-full grow sm:order-1 lg:static lg:block lg:h-auto sm:max-w-none w-[270px] lg:border-r-transparent lg:transition-none lg:translate-x-0  lg:basis-auto hidden "
+            tabindex="-1" data-hs-overlay-close-on-resize>
+            <div class="lg:flex gap-2  items-center ">
+              <div class="flex lg:hidden lg:p-0 p-5">@@include("./logo-sidebar.html")
+              </div>
+              <div class="lg:p-0 p-5 lg:flex gap-2 items-center">
+                <div class="lg:flex items-center">
+                  @@include("./header-components/dd-apps.html")
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="icon-nav items-center gap-3 lg:gap-4 flex">
+          <!-- Theme Toggle  -->
+          <button type="button"
+            class="hs-dark-mode-active:hidden icon-hover block hs-dark-mode group items-center font-medium hover:text-primary text-link dark:text-darklink h-10 w-10 hover:bg-lightprimary dark:hover:bg-darkprimary  justify-center rounded-full"
+            data-hs-theme-click-value="dark" id="dark-layout">
+            <i class="ti ti-moon text-xl  text-link dark:text-darklink relative  hover:text-primary"></i>
+          </button>
+          <button type="button"
+            class="hs-dark-mode-active:block icon-hover hidden hs-dark-mode group  items-center  font-medium hover:text-primary text-link dark:text-darklink h-10 w-10 hover:bg-lightprimary dark:hover:bg-darkprimary  justify-center rounded-full"
+            data-hs-theme-click-value="light" id="light-layout">
+            <i class="ti ti-sun text-xl  text-link dark:text-darklink relative  hover:text-primary"></i>
+          </button>
+          <!-- Notifications DD -->
+          @@include("./header-components/dd-notification.html")
+          <!-- Profile DD -->
+          @@include("./header-components/dd-profile.html")
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

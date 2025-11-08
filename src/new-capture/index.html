@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-color-theme="Green_Theme" class="selected"
+	data-layout="vertical" data-boxed-layout="full" data-card="shadow">
+
+	<head>
+		@@include("../partials/head.html")
+		<title>New Capture - Siftin</title>
+	</head>
+
+	<body class="DEFAULT_THEME  bg-white dark:bg-dark">
+		<main>
+			<!--start the project-->
+			<div id="main-wrapper" class="flex">
+
+				<aside id="application-sidebar-brand"
+					class="hs-overlay hs-overlay-open:translate-x-0 -translate-x-full xl:rtl:-translate-x-0 rtl:translate-x-full  left-0 rtl:left-auto rtl:right-0 transform hidden xl:block xl:translate-x-0 xl:end-auto xl:bottom-0 fixed top-0 with-vertical  left-sidebar transition-all duration-300 h-screen z-[2] flex-shrink-0 border-r rtl:border-l rtl:border-r-0 w-[270px] border-border dark:border-darkborder bg-white dark:bg-dark">
+					@@include("../partials/sidebar.html",{ "page": "sample page 1" })
+				</aside>
+				<div class="page-wrapper w-full" role="main">
+					<!--  Header Start -->
+					<header
+						class="sticky top-header top-0 inset-x-0 z-[1] flex flex-wrap md:justify-start md:flex-nowrap text-sm bg-white dark:bg-dark ">
+					<div
+						class="with-vertical w-full">@@include("../partials/header.html")</div>
+					<div class="with-horizontal w-full">
+						<div class="bg-white dark:bg-dark shadow-md dark:shadow-dark-md">
+							<div class="container">
+								@@include("../partials/horizontal-header.html")
+							</div>
+						</div>
+					</div>
+					</header>
+					<!--  Header End -->
+
+					<!-- Horizontal Header Menu -->
+					<aside class="with-horizontal lg:flex hidden">
+						@@include("../partials/horizontal-sidebar.html", { "page": "sample page 1",
+						})
+					</aside>
+					<!-- Horizontal Header Menu End -->
+
+					<!-- Main Content -->
+					<main class="h-full max-w-full pt-6">
+						<div class="container full-container py-5">
+							<!-- Page Title -->
+							<div class="mb-8">
+								<div class="flex items-center justify-between mb-2">
+									<div>
+										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">New Capture</h1>
+										<p class="text-base text-link dark:text-darklink">Create a new LinkedIn lead capture run</p>
+									</div>
+									<!-- LinkedIn Login Status Indicator -->
+									<div id="linkedin-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark cursor-pointer hover:shadow-md transition-shadow" title="Click to check LinkedIn authentication status" onclick="checkLinkedInStatus()">
+										<div id="linkedin-status-icon" class="w-3 h-3 rounded-full bg-gray-400"></div>
+										<span id="linkedin-status-text" class="text-sm text-link dark:text-darklink">Click to check status</span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Step Progress Indicator -->
+							<div class="mb-8">
+								<div class="flex items-center justify-between">
+									<!-- Step 1 -->
+									<div class="flex items-center flex-1">
+										<div class="flex items-center">
+											<div id="step-1-indicator" class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-sm">1</div>
+											<span id="step-1-label" class="ml-2 text-sm font-medium text-primary">Source</span>
+										</div>
+										<div id="step-1-line" class="flex-1 h-0.5 bg-gray-200 dark:bg-darkborder mx-4"></div>
+									</div>
+
+									<!-- Step 2 -->
+									<div class="flex items-center flex-1">
+										<div id="step-2-check" class="hidden"><i class="ti ti-check text-primary text-lg"></i></div>
+										<div id="step-2-indicator" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-darkborder text-gray-500 dark:text-gray-400 flex items-center justify-center font-semibold text-sm">2</div>
+										<span id="step-2-label" class="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400">AI Criteria</span>
+										<div id="step-2-line" class="flex-1 h-0.5 bg-gray-200 dark:bg-darkborder mx-4"></div>
+									</div>
+
+									<!-- Step 3 -->
+									<div class="flex items-center flex-1">
+										<div id="step-3-check" class="hidden"><i class="ti ti-check text-primary text-lg"></i></div>
+										<div id="step-3-indicator" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-darkborder text-gray-500 dark:text-gray-400 flex items-center justify-center font-semibold text-sm">3</div>
+										<span id="step-3-label" class="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400">Preview & Select</span>
+										<div id="step-3-line" class="flex-1 h-0.5 bg-gray-200 dark:bg-darkborder mx-4"></div>
+									</div>
+
+									<!-- Step 4 -->
+									<div class="flex items-center">
+										<div id="step-4-check" class="hidden"><i class="ti ti-check text-primary text-lg"></i></div>
+										<div id="step-4-indicator" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-darkborder text-gray-500 dark:text-gray-400 flex items-center justify-center font-semibold text-sm">4</div>
+										<span id="step-4-label" class="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400">Save & Export</span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Step Content Card -->
+							<div class="card shadow-lg">
+								<div class="card-body p-8">
+									<!-- Step 1: LinkedIn Source -->
+									<div id="step-1-content" class="step-content">
+										<h2 class="text-2xl font-bold text-dark dark:text-white mb-6">Step 1: LinkedIn Source</h2>
+										
+										<div class="mb-6">
+											<label for="linkedin-url" class="block text-sm font-semibold text-dark dark:text-white mb-2">LinkedIn Search URL</label>
+											<input 
+												type="text" 
+												id="linkedin-url" 
+												class="w-full px-4 py-3 border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark text-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" 
+												placeholder="https://www.linkedin.com/search/results/people/..."
+											/>
+										</div>
+
+										<div class="bg-lightinfo dark:bg-darkinfo border-l-4 border-primary p-4 rounded-md mb-6">
+											<div class="flex items-start">
+												<i class="ti ti-info-circle text-primary text-xl mr-3 mt-0.5"></i>
+												<div>
+													<p class="text-sm font-semibold text-dark dark:text-white mb-1">Example format:</p>
+													<code class="text-xs text-link dark:text-darklink break-all">
+														https://www.linkedin.com/search/results/people/?keywords=SDR%20manager&geoUrn=%5B%22103644278%22%5D
+													</code>
+												</div>
+											</div>
+										</div>
+
+										<div class="flex justify-end">
+											<button id="step1-continue-btn" onclick="nextStep(2)" class="btn btn-primary flex items-center cursor-pointer">
+												Continue <i class="ti ti-arrow-right ml-2"></i>
+											</button>
+										</div>
+									</div>
+
+									<!-- Step 2: AI Criteria -->
+									<div id="step-2-content" class="step-content hidden">
+										<h2 class="text-2xl font-bold text-dark dark:text-white mb-6">Step 2: Define AI Criteria</h2>
+										
+										<div class="mb-4">
+											<label for="ai-criteria" class="block text-sm font-semibold text-dark dark:text-white mb-2">Describe the leads you want (natural language)</label>
+											<textarea 
+												id="ai-criteria" 
+												rows="5" 
+												class="w-full px-4 py-3 border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark text-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-y" 
+												placeholder="e.g., US-based SDR managers at B2B SaaS companies with 11-200 employees, preferably using HubSpot or Salesforce..."
+											></textarea>
+										</div>
+
+										<div class="mb-6">
+											<p class="text-sm font-semibold text-dark dark:text-white mb-3">Quick chips (click to insert):</p>
+											<div class="flex flex-wrap gap-2">
+												<button onclick="insertChip('US-based SDR managers at B2B SaaS (11-200), using HubSpot')" class="px-4 py-2 border border-border dark:border-darkborder text-dark dark:text-white rounded-md text-sm hover:border-primary dark:hover:border-primary transition-colors cursor-pointer">
+													US-based SDR managers at B2B SaaS (11-200), using HubSpot
+												</button>
+												<button onclick="insertChip('Founders in fintech, Series A-B, NYC or remote')" class="px-4 py-2 border border-border dark:border-darkborder text-dark dark:text-white rounded-md text-sm hover:border-primary dark:hover:border-primary transition-colors cursor-pointer">
+													Founders in fintech, Series A-B, NYC or remote
+												</button>
+												<button onclick="insertChip('VP Sales at enterprise software companies (500+ employees)')" class="px-4 py-2 border border-border dark:border-darkborder text-dark dark:text-white rounded-md text-sm hover:border-primary dark:hover:border-primary transition-colors cursor-pointer">
+													VP Sales at enterprise software companies (500+ employees)
+												</button>
+												<button onclick="insertChip('Revenue Operations leaders at high-growth SaaS companies')" class="px-4 py-2 border border-border dark:border-darkborder text-dark dark:text-white rounded-md text-sm hover:border-primary dark:hover:border-primary transition-colors cursor-pointer">
+													Revenue Operations leaders at high-growth SaaS companies
+												</button>
+											</div>
+										</div>
+
+										<div class="flex justify-between">
+											<button onclick="prevStep(1)" class="btn btn-outline flex items-center cursor-pointer">
+												<i class="ti ti-arrow-left mr-2"></i> Back
+											</button>
+											<button id="step2-preview-btn" onclick="nextStep(3)" class="btn btn-primary flex items-center cursor-pointer">
+												Preview Matches <i class="ti ti-arrow-right ml-2"></i>
+											</button>
+										</div>
+									</div>
+
+									<!-- Step 3: Preview & Select -->
+									<div id="step-3-content" class="step-content hidden">
+										<div class="flex justify-between items-center mb-6">
+											<h2 class="text-2xl font-bold text-dark dark:text-white">Step 3: Preview & Select Leads</h2>
+											<div class="flex items-center gap-4">
+												<span class="text-sm text-link dark:text-darklink" id="lead-count">0 selected</span>
+												<button onclick="selectAll()" class="px-4 py-2 border border-border dark:border-darkborder rounded-md text-sm text-dark dark:text-white hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white cursor-pointer transition-colors">Select All</button>
+												<button onclick="deselectAll()" class="px-4 py-2 border border-border dark:border-darkborder rounded-md text-sm text-dark dark:text-white hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white cursor-pointer transition-colors">Deselect All</button>
+											</div>
+										</div>
+
+										<div class="space-y-4 max-h-[600px] overflow-y-auto" id="leads-list">
+											<!-- Leads will be dynamically inserted here -->
+										</div>
+										
+										<!-- Mock Data Notice -->
+										<div id="mock-data-notice" class="hidden mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+											<div class="flex items-start">
+												<i class="ti ti-info-circle text-blue-600 dark:text-blue-400 text-lg mr-3 mt-0.5"></i>
+												<div>
+													<p class="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">Dynamic Lead Generation</p>
+													<p class="text-xs text-blue-700 dark:text-blue-300">Leads are generated dynamically based on your LinkedIn URL and AI criteria. In production, this would fetch real LinkedIn profiles.</p>
+												</div>
+											</div>
+										</div>
+
+										<div class="flex justify-between mt-6">
+											<button onclick="prevStep(2)" class="btn btn-outline flex items-center cursor-pointer">
+												<i class="ti ti-arrow-left mr-2"></i> Back
+											</button>
+											<button onclick="nextStep(4)" class="btn btn-primary flex items-center cursor-pointer" id="save-selection-btn" disabled>
+												Save Selection <i class="ti ti-arrow-right ml-2"></i>
+											</button>
+										</div>
+									</div>
+
+									<!-- Step 4: Save & Export -->
+									<div id="step-4-content" class="step-content hidden">
+										<h2 class="text-2xl font-bold text-dark dark:text-white mb-6">Step 4: Save & Export</h2>
+										
+										<div class="mb-6">
+											<label for="run-label" class="block text-sm font-semibold text-dark dark:text-white mb-2">Run Label</label>
+											<input 
+												type="text" 
+												id="run-label" 
+												class="w-full px-4 py-3 border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark text-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" 
+												value="Run - 10/31/2025 2:15:07 PM"
+											/>
+										</div>
+
+										<div class="card bg-lightsecondary dark:bg-darksecondary mb-6">
+											<div class="card-body">
+												<h5 class="font-semibold text-dark dark:text-white mb-4">Summary</h5>
+												<div class="space-y-2 text-sm">
+													<div class="flex">
+														<span class="text-link dark:text-darklink w-32">Source:</span>
+														<span class="text-dark dark:text-white flex-1 break-all" id="summary-source">-</span>
+													</div>
+													<div class="flex">
+														<span class="text-link dark:text-darklink w-32">Keywords:</span>
+														<span class="text-dark dark:text-white flex-1" id="summary-keywords">-</span>
+													</div>
+													<div class="flex">
+														<span class="text-link dark:text-darklink w-32">Criteria:</span>
+														<span class="text-dark dark:text-white flex-1" id="summary-criteria">-</span>
+													</div>
+													<div class="flex">
+														<span class="text-link dark:text-darklink w-32">Found:</span>
+														<span class="text-dark dark:text-white flex-1" id="summary-found">-</span>
+													</div>
+													<div class="flex">
+														<span class="text-link dark:text-darklink w-32">Selected:</span>
+														<span class="text-dark dark:text-white flex-1" id="summary-selected">-</span>
+													</div>
+												</div>
+											</div>
+										</div>
+
+										<div class="flex justify-between">
+											<button onclick="prevStep(3)" class="btn btn-outline flex items-center cursor-pointer">
+												<i class="ti ti-arrow-left mr-2"></i> Back
+											</button>
+											<div class="flex gap-3">
+												<button onclick="saveToLibrary()" class="btn btn-outline flex items-center cursor-pointer">
+													<i class="ti ti-file-text mr-2"></i> Save to Leads Library
+												</button>
+												<button onclick="saveAndExport()" class="btn btn-primary flex items-center cursor-pointer">
+													<i class="ti ti-download mr-2"></i> Save & Export...
+												</button>
+											</div>
+										</div>
+									</div>
+
+								</div>
+							</div>
+
+						</div>
+
+					</main>
+					<!-- Main Content End -->
+
+				</div>
+			</div>
+			<!--end of project-->
+		</main>
+		@@include("../partials/header-components/mobile-menu.html")
+		@@include("../partials/header-components/dd-searchbar.html")
+		@@include("../partials/header-components/dd-cart.html")
+		@@include("../partials/customizer.html")
+		@@include("../partials/scripts.html")
+		
+		<script>
+			// API Configuration
+			const API_BASE_URL = 'http://localhost:8000';
+			
+			// Application state
+			let currentStep = 1;
+			let selectedLeads = [];
+			let foundLeads = [];
+			let linkedinUrl = '';
+			let aiCriteria = '';
+			let extractedKeywords = '';
+			let linkedinLoginStatus = null;
+			
+			// Helper function for API calls
+			async function apiCall(endpoint, method = 'GET', data = null, timeout = 300000) {
+				// Default timeout: 5 minutes (300000ms) for find-leads endpoint
+				// Other endpoints use default or can specify custom timeout
+				try {
+					const options = {
+						method,
+						headers: {
+							'Content-Type': 'application/json',
+						}
+					};
+					
+					if (data) {
+						options.body = JSON.stringify(data);
+					}
+					
+					console.log(`[API] Calling ${method} ${API_BASE_URL}${endpoint}`, data);
+					
+					// Create a timeout promise
+					const timeoutPromise = new Promise((_, reject) => {
+						setTimeout(() => {
+							reject(new Error(`Request timeout after ${timeout / 1000} seconds. The scraper may be waiting for LinkedIn login.`));
+						}, timeout);
+					});
+					
+					// Race between fetch and timeout
+					const response = await Promise.race([
+						fetch(`${API_BASE_URL}${endpoint}`, options),
+						timeoutPromise
+					]);
+					
+					if (!response.ok) {
+						const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+						console.error(`[API] Error response:`, error);
+						throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+					}
+					
+					const result = await response.json();
+					console.log(`[API] Success:`, result);
+					return result;
+				} catch (error) {
+					console.error('[API] Request failed:', error);
+					
+					// Check if it's a network error (API not running)
+					if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+						throw new Error('Cannot connect to API. Make sure the FastAPI server is running on http://localhost:8000');
+					}
+					
+					throw error;
+				}
+			}
+			
+			// Show loading state
+			function showLoading(elementId, show = true) {
+				const element = document.getElementById(elementId);
+				if (!element) return;
+				
+				if (show) {
+					element.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div><p class="mt-4 text-link dark:text-darklink">Loading...</p></div>';
+				} else {
+					// Clear loading state - let the caller set the content
+					element.innerHTML = '';
+				}
+			}
+			
+			// Show error message
+			function showError(message) {
+				alert(`Error: ${message}`);
+			}
+
+			function updateStepIndicator(step) {
+				// Reset all steps
+				for (let i = 1; i <= 4; i++) {
+					const indicator = document.getElementById(`step-${i}-indicator`);
+					const label = document.getElementById(`step-${i}-label`);
+					const check = document.getElementById(`step-${i}-check`);
+					const line = document.getElementById(`step-${i}-line`);
+					const content = document.getElementById(`step-${i}-content`);
+
+					if (!indicator || !label) continue;
+
+					if (i < step) {
+						// Completed steps
+						indicator.classList.add('hidden');
+						if (check) check.classList.remove('hidden');
+						label.classList.remove('text-gray-500', 'dark:text-gray-400');
+						label.classList.add('text-primary');
+						if (line) line.classList.remove('bg-gray-200', 'dark:bg-darkborder');
+						if (line) line.classList.add('bg-primary');
+						if (content) content.classList.add('hidden');
+					} else if (i === step) {
+						// Current step
+						indicator.classList.remove('hidden', 'bg-gray-200', 'dark:bg-darkborder', 'text-gray-500', 'dark:text-gray-400');
+						indicator.classList.add('bg-primary', 'text-white');
+						if (check) check.classList.add('hidden');
+						label.classList.remove('text-gray-500', 'dark:text-gray-400');
+						label.classList.add('text-primary');
+						if (content) content.classList.remove('hidden');
+					} else {
+						// Future steps
+						indicator.classList.remove('bg-primary', 'text-white');
+						indicator.classList.add('bg-gray-200', 'dark:bg-darkborder', 'text-gray-500', 'dark:text-gray-400');
+						if (check) check.classList.add('hidden');
+						label.classList.remove('text-primary');
+						label.classList.add('text-gray-500', 'dark:text-gray-400');
+						if (line) line.classList.remove('bg-primary');
+						if (line) line.classList.add('bg-gray-200', 'dark:bg-darkborder');
+						if (content) content.classList.add('hidden');
+					}
+				}
+			}
+
+			// Extract keywords from LinkedIn URL (client-side, instant)
+			function extractKeywordsFromUrl(url) {
+				try {
+					const urlObj = new URL(url);
+					const params = new URLSearchParams(urlObj.search);
+					
+					// Try to get keywords from query parameter
+					let keywords = params.get('keywords') || '';
+					
+					// If no keywords in query, try to extract from URL path
+					if (!keywords) {
+						const pathParts = urlObj.pathname.split('/');
+						for (const part of pathParts) {
+							if (part && part !== 'search' && part !== 'results' && part !== 'people') {
+								// Decode URL encoding
+								const decoded = decodeURIComponent(part);
+								if (decoded && decoded.length > 2) {
+									keywords = decoded.replace(/-/g, ' ').replace(/_/g, ' ');
+									break;
+								}
+							}
+						}
+					}
+					
+					return keywords || 'LinkedIn Search';
+				} catch (error) {
+					console.error('Error extracting keywords:', error);
+					return 'LinkedIn Search';
+				}
+			}
+
+			async function nextStep(step) {
+				if (step === 2) {
+					// Validate LinkedIn URL before proceeding
+					const urlInput = document.getElementById('linkedin-url');
+					linkedinUrl = urlInput?.value?.trim() || '';
+					
+					if (!linkedinUrl) {
+						showError('Please enter a LinkedIn search URL');
+						return;
+					}
+					
+					// Validate URL format
+					try {
+						new URL(linkedinUrl);
+					} catch (error) {
+						showError('Please enter a valid LinkedIn URL');
+						return;
+					}
+					
+					// Validate that it's a search results URL (not a profile URL like /me or /in/)
+					if (!linkedinUrl.includes('/search/results/people')) {
+						showError('Please enter a LinkedIn search results URL. The URL must contain "/search/results/people". Example: https://www.linkedin.com/search/results/people/?keywords=...');
+						console.error('[Step 1] Invalid URL format. Expected search results URL, got:', linkedinUrl);
+						return;
+					}
+					
+					// Extract keywords client-side (instant, no API call needed)
+					extractedKeywords = extractKeywordsFromUrl(linkedinUrl);
+					
+					// Step 1 is now instant - proceed immediately
+				}
+				
+				if (step === 3) {
+					// Validate AI criteria and fetch leads
+					const criteriaInput = document.getElementById('ai-criteria');
+					aiCriteria = criteriaInput?.value?.trim() || '';
+					
+					if (!aiCriteria) {
+						showError('Please enter AI criteria');
+						return;
+					}
+					
+					if (!linkedinUrl) {
+						showError('LinkedIn URL is required. Please go back to step 1.');
+						return;
+					}
+					
+					// Get button reference (declare once for the entire block)
+					const previewBtn = document.getElementById('step2-preview-btn');
+					const originalBtnText = previewBtn?.innerHTML || '';
+					
+					try {
+						// Show loading state
+						if (previewBtn) {
+							previewBtn.disabled = true;
+							previewBtn.innerHTML = '<span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>Finding leads...';
+						}
+						
+						// Update step indicator first to show step 3
+						currentStep = step;
+						updateStepIndicator(step);
+						
+						showLoading('leads-list', true);
+						
+						// Double-check URL is a search URL before sending to BrightData
+						if (!linkedinUrl || !linkedinUrl.includes('/search/results/people')) {
+							showLoading('leads-list', false);
+							if (previewBtn) {
+								previewBtn.disabled = false;
+								previewBtn.innerHTML = originalBtnText;
+							}
+							showError('Invalid LinkedIn URL. Please provide a LinkedIn search results URL (must contain "/search/results/people"). Profile URLs like /me or /in/ are not supported.');
+							console.error('[Step 3] Invalid URL format. Expected search results URL, got:', linkedinUrl);
+							return;
+						}
+						
+						console.log('[Step 3] Fetching leads with:', { linkedin_url: linkedinUrl, ai_criteria: aiCriteria });
+						
+						// Show a message that this may take a while
+						const leadsList = document.getElementById('leads-list');
+						if (leadsList) {
+							leadsList.innerHTML = `
+								<div class="text-center py-8">
+									<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-6 mb-4">
+										<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
+										<h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Fetching Leads...</h3>
+										<p class="text-sm text-blue-700 dark:text-blue-300 mb-2">
+											This may take 1-3 minutes. The browser will open automatically for LinkedIn login if needed.
+										</p>
+										<p class="text-xs text-blue-600 dark:text-blue-400">
+											Please wait and check the browser window that opens.
+										</p>
+									</div>
+								</div>
+							`;
+						}
+						
+						// Use longer timeout for find-leads (5 minutes)
+						const result = await apiCall('/api/capture/find-leads', 'POST', {
+							linkedin_url: linkedinUrl,
+							ai_criteria: aiCriteria
+						}, 300000); // 5 minutes timeout
+						
+						console.log('[Step 3] API response received:', result);
+						
+						if (!result) {
+							throw new Error('Invalid response from API');
+						}
+						
+						// Check if login is required
+						if (result.requires_login) {
+							console.log('[Step 3] Login/Configuration required');
+							showLoading('leads-list', false);
+							
+							const leadsList = document.getElementById('leads-list');
+							if (leadsList) {
+								const loginUrl = result.login_url || 'https://brightdata.com/cp/dashboard';
+								leadsList.innerHTML = `
+									<div class="text-center py-8">
+										<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-6 mb-4">
+											<i class="ti ti-settings text-blue-600 dark:text-blue-400 text-4xl mb-4"></i>
+											<h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">LinkedIn Authentication Required</h3>
+											<p class="text-sm text-blue-700 dark:text-blue-300 mb-3">
+												Your BrightData collector needs LinkedIn authentication configured. LinkedIn requires login to access search results.
+											</p>
+											<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4 mb-4 text-left">
+												<p class="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">To configure LinkedIn authentication in BrightData:</p>
+												<ol class="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 list-decimal list-inside">
+													<li>Go to your <a href="${loginUrl}" target="_blank" class="underline">BrightData Dashboard</a></li>
+													<li>Navigate to your LinkedIn collector (ID: <code class="bg-white dark:bg-dark px-1 rounded">${result.collector_id || 'your-collector-id'}</code>)</li>
+													<li>Go to <strong>Settings</strong> → <strong>Authentication</strong> or <strong>Session Management</strong></li>
+													<li>Add your LinkedIn session cookies (li_at, JSESSIONID) or configure LinkedIn login credentials</li>
+													<li>Save the configuration and wait a few minutes for it to take effect</li>
+													<li>Try again after authentication is configured</li>
+												</ol>
+												<p class="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+													<strong>Note:</strong> You may need to log into LinkedIn in a browser, extract session cookies, and add them to your BrightData collector settings.
+												</p>
+											</div>
+											<div class="flex gap-3 justify-center">
+												<a href="${loginUrl}" target="_blank" class="btn btn-primary">
+													<i class="ti ti-external-link mr-2"></i> Open BrightData Dashboard
+												</a>
+												<button onclick="nextStep(3)" class="btn btn-secondary">
+													<i class="ti ti-refresh mr-2"></i> Try Again
+												</button>
+											</div>
+											<p class="text-xs text-blue-600 dark:text-blue-400 mt-4">
+												Note: BrightData collectors need to be configured with LinkedIn authentication in the dashboard.
+											</p>
+										</div>
+									</div>
+								`;
+							}
+							
+							// Restore button
+							if (previewBtn) {
+								previewBtn.disabled = false;
+								previewBtn.innerHTML = originalBtnText;
+							}
+							return;
+						}
+						
+						if (!result.leads) {
+							throw new Error('Invalid response from API');
+						}
+						
+					foundLeads = result.leads || [];
+					console.log('[Step 3] Found leads:', foundLeads.length);
+					
+					// Hide loading spinner
+					showLoading('leads-list', false);
+					
+					if (foundLeads.length === 0) {
+						generateLeadsList(); // This will show "No leads found"
+						document.getElementById('mock-data-notice')?.classList.add('hidden');
+					} else {
+						// Update count immediately
+						updateLeadCount();
+						generateLeadsList();
+						// Show mock data notice
+						document.getElementById('mock-data-notice')?.classList.remove('hidden');
+					}
+						
+						// Restore button
+						if (previewBtn) {
+							previewBtn.disabled = false;
+							previewBtn.innerHTML = originalBtnText;
+						}
+					} catch (error) {
+						console.error('[Step 3] Error:', error);
+						showLoading('leads-list', false);
+						
+						// Restore button state immediately (previewBtn already declared above)
+						if (previewBtn) {
+							previewBtn.disabled = false;
+							previewBtn.innerHTML = 'Find Leads <i class="ti ti-search ml-2"></i>';
+						}
+						
+						// Show error message in leads list
+						const leadsList = document.getElementById('leads-list');
+						if (leadsList) {
+							let errorMessage = error.message || 'Unknown error occurred';
+							
+							// Handle timeout specifically
+							if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
+								leadsList.innerHTML = `
+									<div class="text-center py-8">
+										<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-6 mb-4">
+											<i class="ti ti-clock text-yellow-600 dark:text-yellow-400 text-4xl mb-4"></i>
+											<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Request Timed Out</h3>
+											<p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+												The request took too long. This usually means:
+											</p>
+											<ul class="text-sm text-yellow-700 dark:text-yellow-300 text-left max-w-md mx-auto space-y-2 mb-4">
+												<li>• A browser window opened - please log into LinkedIn there</li>
+												<li>• The scraper is waiting for you to complete login</li>
+												<li>• LinkedIn may be blocking automated access</li>
+											</ul>
+											<p class="text-xs text-yellow-600 dark:text-yellow-400 mb-4">
+												Check if a Chrome browser window opened. Log in to LinkedIn if needed, then try again.
+											</p>
+											<button onclick="nextStep(3)" class="btn btn-primary mt-4">Try Again</button>
+										</div>
+									</div>
+								`;
+								showError('Request timed out. Please check if a browser window opened and try again.');
+							} else if (errorMessage.includes('Unable to fetch LinkedIn profiles') || errorMessage.includes('404')) {
+								leadsList.innerHTML = `
+									<div class="text-center py-8">
+										<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-6 mb-4">
+											<i class="ti ti-alert-circle text-yellow-600 dark:text-yellow-400 text-4xl mb-4"></i>
+											<h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">No LinkedIn Profiles Found</h3>
+											<p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+												Unable to fetch LinkedIn profiles from the search URL. Please ensure:
+											</p>
+											<ul class="text-sm text-yellow-700 dark:text-yellow-300 text-left max-w-md mx-auto space-y-2">
+												<li>• You are logged into LinkedIn</li>
+												<li>• The search URL is valid and accessible</li>
+												<li>• ChromeDriver is installed (for automated scraping)</li>
+											</ul>
+										</div>
+									</div>
+								`;
+							} else {
+								leadsList.innerHTML = `
+									<div class="text-center py-8">
+										<p class="text-red-500 dark:text-red-400 mb-2 font-semibold">Error loading leads</p>
+										<p class="text-sm text-link dark:text-darklink">${errorMessage}</p>
+									</div>
+								`;
+							}
+						}
+						// Restore button (previewBtn already declared above)
+						if (previewBtn) {
+							previewBtn.disabled = false;
+							previewBtn.innerHTML = 'Preview Matches <i class="ti ti-arrow-right ml-2"></i>';
+						}
+						return;
+					}
+				}
+				
+				if (step === 4) {
+					// Update summary when moving to step 4
+					updateSummary();
+				}
+				
+				// Only update step indicator if we're not in step 3 (it's already updated there)
+				if (step !== 3) {
+					currentStep = step;
+					updateStepIndicator(step);
+				}
+			}
+
+			function prevStep(step) {
+				currentStep = step;
+				updateStepIndicator(step);
+			}
+
+			function insertChip(text) {
+				const textarea = document.getElementById('ai-criteria');
+				if (!textarea) return;
+				const currentText = textarea.value;
+				textarea.value = currentText ? currentText + ' ' + text : text;
+				textarea.focus();
+			}
+
+			function generateLeadsList() {
+				const leadsList = document.getElementById('leads-list');
+				if (!leadsList) return;
+				leadsList.innerHTML = '';
+				selectedLeads = [];
+
+				if (foundLeads.length === 0) {
+					leadsList.innerHTML = '<div class="text-center py-8 text-link dark:text-darklink">No leads found</div>';
+					updateLeadCount();
+					return;
+				}
+
+				console.log('[generateLeadsList] Rendering', foundLeads.length, 'leads with lazy loading');
+
+				// Map user images (cycling through available profile images)
+				const userImages = [
+					'@@webRoot/assets/images/profile/user-1.jpg',
+					'@@webRoot/assets/images/profile/user-2.jpg',
+					'@@webRoot/assets/images/profile/user-3.jpg',
+					'@@webRoot/assets/images/profile/user-4.jpg',
+					'@@webRoot/assets/images/profile/user-5.jpg',
+					'@@webRoot/assets/images/profile/user-6.jpg',
+					'@@webRoot/assets/images/profile/user-7.jpg',
+					'@@webRoot/assets/images/profile/user-8.jpg'
+				];
+
+				// Lazy load leads one by one
+				let currentIndex = 0;
+				const delayBetweenLeads = 150; // milliseconds between each lead
+
+				function showNextLead() {
+					if (currentIndex >= foundLeads.length) {
+						// All leads shown, update count
+						updateLeadCount();
+						return;
+					}
+
+					const lead = foundLeads[currentIndex];
+					const leadCard = document.createElement('div');
+					leadCard.className = 'card border border-border dark:border-darkborder hover:border-primary transition-colors opacity-0 translate-y-4';
+					leadCard.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+					
+					const imageIndex = currentIndex % userImages.length;
+					const matchScore = lead.match_score || 0;
+					// Use profile_image if available, otherwise fall back to local images
+					const profileImage = lead.profile_image || userImages[imageIndex];
+					// Make name clickable with LinkedIn URL
+					const nameLink = lead.linkedin_url 
+						? `<a href="${lead.linkedin_url}" target="_blank" rel="noopener noreferrer" class="font-semibold text-dark dark:text-white hover:text-primary transition-colors">${lead.name}</a>`
+						: `<span class="font-semibold text-dark dark:text-white">${lead.name}</span>`;
+					leadCard.innerHTML = `
+						<div class="card-body p-4">
+							<div class="flex items-start gap-4">
+								<input type="checkbox" class="mt-2 lead-checkbox cursor-pointer" data-lead-id="${lead.id}" onchange="toggleLead('${lead.id}')">
+								<img src="${profileImage}" alt="${lead.name}" class="w-12 h-12 rounded-full object-cover" onerror="this.src='${userImages[imageIndex]}'">
+								<div class="flex-1">
+									<div class="flex items-center gap-2 mb-1">
+										<h5>${nameLink}</h5>
+										<span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-xs font-semibold">${matchScore}%</span>
+									</div>
+									<p class="text-sm text-link dark:text-darklink mb-1">${lead.title} at ${lead.company}</p>
+									<p class="text-sm text-dark dark:text-white mb-1">${lead.description || ''}</p>
+									<p class="text-sm text-link dark:text-darklink">${lead.location || ''}</p>
+								</div>
+							</div>
+						</div>
+					`;
+					
+					leadsList.appendChild(leadCard);
+					
+					// Trigger animation by changing opacity and transform
+					setTimeout(() => {
+						leadCard.style.opacity = '1';
+						leadCard.style.transform = 'translateY(0)';
+					}, 10); // Small delay to ensure DOM is ready
+					
+					currentIndex++;
+					
+					// Schedule next lead
+					setTimeout(showNextLead, delayBetweenLeads);
+				}
+
+				// Start showing leads
+				showNextLead();
+			}
+
+			function toggleLead(leadId) {
+				const index = selectedLeads.indexOf(leadId);
+				if (index > -1) {
+					selectedLeads.splice(index, 1);
+				} else {
+					selectedLeads.push(leadId);
+				}
+				updateLeadCount();
+			}
+
+			function selectAll() {
+				selectedLeads = foundLeads.map(lead => lead.id);
+				document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = true);
+				updateLeadCount();
+			}
+
+			function deselectAll() {
+				selectedLeads = [];
+				document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = false);
+				updateLeadCount();
+			}
+
+			function updateLeadCount() {
+				const count = selectedLeads.length;
+				const leadCountEl = document.getElementById('lead-count');
+				const saveBtn = document.getElementById('save-selection-btn');
+				if (leadCountEl) leadCountEl.textContent = `${foundLeads.length} found • ${count} selected`;
+				if (saveBtn) saveBtn.disabled = count === 0;
+			}
+
+			function updateSummary() {
+				const runLabelInput = document.getElementById('run-label');
+				const summarySource = document.getElementById('summary-source');
+				const summaryKeywords = document.getElementById('summary-keywords');
+				const summaryCriteria = document.getElementById('summary-criteria');
+				const summaryFound = document.getElementById('summary-found');
+				const summarySelected = document.getElementById('summary-selected');
+				
+				// Set default run label if empty
+				if (runLabelInput && !runLabelInput.value) {
+					const now = new Date();
+					runLabelInput.value = `Run - ${now.toLocaleString()}`;
+				}
+				
+				if (summarySource) summarySource.textContent = linkedinUrl || '-';
+				if (summaryKeywords) summaryKeywords.textContent = extractedKeywords || '-';
+				if (summaryCriteria) summaryCriteria.textContent = aiCriteria || '-';
+				if (summaryFound) summaryFound.textContent = `${foundLeads.length} leads`;
+				if (summarySelected) summarySelected.textContent = `${selectedLeads.length} leads`;
+			}
+
+			async function saveToLibrary() {
+				if (selectedLeads.length === 0) {
+					showError('Please select at least one lead');
+					return;
+				}
+				
+				const runLabelInput = document.getElementById('run-label');
+				const runLabel = runLabelInput?.value || `Run - ${new Date().toLocaleString()}`;
+				
+				try {
+					const result = await apiCall('/api/capture/save-to-library', 'POST', {
+						linkedin_url: linkedinUrl,
+						ai_criteria: aiCriteria,
+						run_label: runLabel,
+						selected_lead_ids: selectedLeads
+					});
+					
+					alert(`Success! ${result.message}`);
+				} catch (error) {
+					showError(error.message);
+				}
+			}
+
+			async function saveAndExport() {
+				if (selectedLeads.length === 0) {
+					showError('Please select at least one lead');
+					return;
+				}
+				
+				const runLabelInput = document.getElementById('run-label');
+				const runLabel = runLabelInput?.value || `Run - ${new Date().toLocaleString()}`;
+				
+				try {
+					// Save the run
+					const saveResult = await apiCall('/api/capture/save-run', 'POST', {
+						linkedin_url: linkedinUrl,
+						ai_criteria: aiCriteria,
+						run_label: runLabel,
+						selected_lead_ids: selectedLeads
+					});
+					
+					// Export the leads
+					const exportResult = await apiCall('/api/capture/export', 'POST', {
+						linkedin_url: linkedinUrl,
+						ai_criteria: aiCriteria,
+						run_label: runLabel,
+						selected_lead_ids: selectedLeads
+					});
+					
+					alert(`Success! ${saveResult.message}. ${exportResult.message}`);
+					
+					// In production, trigger download here
+					if (exportResult.download_url) {
+						window.location.href = `${API_BASE_URL}${exportResult.download_url}`;
+					}
+				} catch (error) {
+					showError(error.message);
+				}
+			}
+
+			// Check LinkedIn login status
+			async function checkLinkedInStatus() {
+				const statusIndicator = document.getElementById('linkedin-status-indicator');
+				const statusIcon = document.getElementById('linkedin-status-icon');
+				const statusText = document.getElementById('linkedin-status-text');
+				
+				if (!statusIndicator || !statusIcon || !statusText) return;
+				
+				try {
+					// Show checking state
+					statusIcon.className = 'w-3 h-3 rounded-full bg-gray-400 animate-pulse';
+					statusText.textContent = 'Checking...';
+					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark';
+					statusText.className = 'text-sm text-link dark:text-darklink';
+					
+					// Always perform full LinkedIn authentication test
+					const url = '/api/linkedin-login-status';
+					const timeout = 50000; // 50s for full test (10s wait + up to 30s API call + processing)
+					const result = await apiCall(url, 'GET', null, timeout);
+					
+					linkedinLoginStatus = result.logged_in;
+					
+					if (result.status === 'success') {
+						if (result.logged_in === true && result.brightdata_configured) {
+							// BrightData API configured and ready
+							statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
+							statusText.textContent = result.message || 'BrightData: Configured';
+							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+							statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
+							const tooltip = (result.note || result.suggestion || '').trim();
+							statusIndicator.title = tooltip || 'BrightData API is configured and ready';
+							
+							// Make status indicator clickable to open BrightData dashboard
+							if (result.brightdata_dashboard_url) {
+								statusIndicator.style.cursor = 'pointer';
+								statusIndicator.onclick = (e) => {
+									e.stopPropagation();
+									window.open(result.brightdata_dashboard_url, '_blank');
+								};
+								statusIndicator.title = (tooltip || 'BrightData API is configured') + ' (Click to open BrightData Dashboard)';
+							}
+						} else {
+							// BrightData not configured
+							statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500';
+							statusText.textContent = result.message || 'BrightData: Not Configured';
+							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+							statusText.className = 'text-sm text-yellow-700 dark:text-yellow-300 font-medium';
+							const tooltip = (result.note || result.suggestion || '').trim();
+							statusIndicator.title = tooltip || 'Configure BrightData API credentials';
+							
+							// Make clickable to open BrightData dashboard
+							if (result.brightdata_dashboard_url) {
+								statusIndicator.style.cursor = 'pointer';
+								statusIndicator.onclick = (e) => {
+									e.stopPropagation();
+									window.open(result.brightdata_dashboard_url, '_blank');
+								};
+							}
+						}
+					} else if (result.status === 'error') {
+						// Error state - check if it's authentication error
+						if (result.logged_in === false) {
+							// Authentication required - show login button
+							statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+							statusText.textContent = result.message || 'LinkedIn: Not Logged In';
+							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+							statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+							const tooltip = (result.note || result.error || result.suggestion || '').trim();
+							statusIndicator.title = tooltip || 'LinkedIn authentication required - Click to open login window';
+							
+							// Make clickable - open login window
+							statusIndicator.style.cursor = 'pointer';
+							statusIndicator.onclick = async () => {
+								// Show loading state
+								statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-pulse';
+								statusText.textContent = 'Opening login window...';
+								
+								try {
+									console.log('[Frontend] Calling /api/linkedin-open-login...');
+									const loginResult = await apiCall('/api/linkedin-open-login', 'GET', null, 10000);
+									console.log('[Frontend] Login result:', loginResult);
+									
+									if (loginResult && loginResult.success) {
+										statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-pulse';
+										statusText.textContent = 'Browser window opened - please log in';
+										statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+										statusText.className = 'text-sm text-yellow-700 dark:text-yellow-300 font-medium';
+										
+										// Show message to user
+										alert('A browser window has opened for LinkedIn login. Please log in there. The window will close automatically after successful login, and your status will update.');
+										
+										// Poll for status every 5 seconds
+										const pollInterval = setInterval(async () => {
+											try {
+												const statusResult = await apiCall('/api/linkedin-login-status', 'GET', null, 10000);
+												if (statusResult && statusResult.logged_in === true) {
+													clearInterval(pollInterval);
+													statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
+													statusText.textContent = 'Login successful!';
+													statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+													statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
+													checkLinkedInStatus(); // Refresh full status
+												}
+											} catch (e) {
+												console.error('[Frontend] Error polling status:', e);
+											}
+										}, 5000);
+										
+										// Stop polling after 5 minutes
+										setTimeout(() => {
+											clearInterval(pollInterval);
+										}, 300000);
+									} else {
+										statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+										statusText.textContent = result.message || 'LinkedIn: Not Logged In';
+										alert(loginResult?.note || loginResult?.error || 'Failed to open login window. Please try again.');
+									}
+								} catch (error) {
+									console.error('[Frontend] Error opening login window:', error);
+									statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+									statusText.textContent = result.message || 'LinkedIn: Not Logged In';
+									alert('Error opening login window: ' + (error.message || 'Unknown error') + '. Please check the console for details.');
+								}
+							};
+						} else {
+							// Other error - BrightData not configured
+							statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500';
+							statusText.textContent = result.message || 'BrightData: Configuration Needed';
+							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+							statusText.className = 'text-sm text-yellow-700 dark:text-yellow-300 font-medium';
+							const tooltip = (result.note || result.suggestion || '').trim();
+							statusIndicator.title = tooltip || 'Set BRIGHTDATA_API_TOKEN and BRIGHTDATA_COLLECTOR_ID in api/.env';
+							
+							// Make clickable
+							if (result.brightdata_dashboard_url) {
+								statusIndicator.style.cursor = 'pointer';
+								statusIndicator.onclick = (e) => {
+									e.stopPropagation();
+									window.open(result.brightdata_dashboard_url, '_blank');
+								};
+							}
+						}
+					} else {
+						// Info or unknown state
+						statusIcon.className = 'w-3 h-3 rounded-full bg-blue-500';
+						statusText.textContent = result.message || 'BrightData: Checking...';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20';
+						statusText.className = 'text-sm text-blue-700 dark:text-blue-300 font-medium';
+						const tooltip = (result.note || result.suggestion || '').trim();
+						statusIndicator.title = tooltip || 'BrightData API status';
+					}
+				} catch (error) {
+					console.error('[Status Check] Error:', error);
+					
+					// Check if it's a connection error (API server not running)
+					const isConnectionError = error.message && (
+						error.message.includes('Cannot connect to API') ||
+						error.message.includes('Failed to fetch') ||
+						error.message.includes('ERR_CONNECTION_REFUSED') ||
+						error.message.includes('NetworkError')
+					);
+					
+					if (isConnectionError) {
+						// Connection error - API server not running
+						statusIcon.className = 'w-3 h-3 rounded-full bg-orange-500';
+						statusText.textContent = 'API Server: Not Running';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20';
+						statusText.className = 'text-sm text-orange-700 dark:text-orange-300 font-medium';
+						statusIndicator.title = 'FastAPI server is not running. Please start the server by running: cd api && python main.py (or uvicorn main:app --reload)';
+					} else {
+						// Other error state
+						statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+						statusText.textContent = 'Status: Check Failed';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+						statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+						statusIndicator.title = error.message || 'Failed to check login status. Check console for details.';
+					}
+				}
+			}
+			
+			// Check LinkedIn login status on page load and log to console
+			async function checkLinkedInStatusOnLoad() {
+				try {
+					console.log('%c[LinkedIn Status] Checking login status...', 'color: #0077b5; font-weight: bold;');
+					const url = '/api/linkedin-login-status';
+					const timeout = 50000; // 50s timeout for full BrightData test (reduced wait time + API call)
+					const result = await apiCall(url, 'GET', null, timeout);
+					
+					if (result && result.logged_in === true) {
+						console.log('%c✓ LinkedIn: LOGGED IN', 'color: #00a86b; font-weight: bold; font-size: 14px;');
+						console.log(`%c  Status: ${result.message || 'Authenticated'}`, 'color: #00a86b;');
+						if (result.note) {
+							console.log(`%c  ${result.note}`, 'color: #00a86b;');
+						}
+						console.log('%c  Ready to capture leads', 'color: #00a86b;');
+					} else if (result && result.logged_in === false) {
+						console.log('%c✗ LinkedIn: NOT LOGGED IN', 'color: #d32f2f; font-weight: bold; font-size: 14px;');
+						console.log(`%c  Status: ${result.message || 'Authentication Required'}`, 'color: #d32f2f;');
+						if (result.error) {
+							console.log(`%c  Error: ${result.error}`, 'color: #d32f2f;');
+						}
+						if (result.note) {
+							console.log(`%c  ${result.note}`, 'color: #d32f2f;');
+						}
+						console.log('%c  Opening login window automatically...', 'color: #0077b5; font-weight: bold;');
+						
+						// Automatically open login window after 2 seconds
+						setTimeout(async () => {
+							try {
+								console.log('[Frontend] Auto-opening LinkedIn login window...');
+								const loginResult = await apiCall('/api/linkedin-open-login', 'GET', null, 10000);
+								if (loginResult && loginResult.success) {
+									console.log('%c✓ Login window opened! Please log in to LinkedIn in the browser window.', 'color: #0077b5; font-weight: bold;');
+									alert('A browser window has opened for LinkedIn login. Please log in there. The window will close automatically after successful login.');
+									
+									// Poll for status every 5 seconds
+									const pollInterval = setInterval(async () => {
+										try {
+											const statusResult = await apiCall('/api/linkedin-login-status', 'GET', null, 10000);
+											if (statusResult && statusResult.logged_in === true) {
+												clearInterval(pollInterval);
+												console.log('%c✓ LinkedIn: LOGGED IN', 'color: #00a86b; font-weight: bold; font-size: 14px;');
+												checkLinkedInStatus(); // Refresh UI status
+											}
+										} catch (e) {
+											console.error('[Frontend] Error polling status:', e);
+										}
+									}, 5000);
+									
+									// Stop polling after 5 minutes
+									setTimeout(() => {
+										clearInterval(pollInterval);
+									}, 300000);
+								} else {
+									console.log('%c⚠ Could not open login window automatically. Please click the status indicator to open it manually.', 'color: #ff9800; font-weight: bold;');
+								}
+							} catch (error) {
+								console.error('[Frontend] Error auto-opening login window:', error);
+								console.log('%c⚠ Could not open login window automatically. Please click the status indicator to open it manually.', 'color: #ff9800; font-weight: bold;');
+							}
+						}, 2000); // Wait 2 seconds before opening
+					} else {
+						console.log('%c⚠ LinkedIn: Status Unknown', 'color: #ff9800; font-weight: bold; font-size: 14px;');
+						console.log(`%c  Status: ${result?.message || 'Unable to determine status'}`, 'color: #ff9800;');
+						if (result?.note) {
+							console.log(`%c  ${result.note}`, 'color: #ff9800;');
+						}
+					}
+				} catch (error) {
+					console.log('%c⚠ LinkedIn: Status check failed', 'color: #ff9800; font-weight: bold; font-size: 14px;');
+					console.log(`%c  Error: ${error.message || 'Unknown error'}`, 'color: #ff9800;');
+				}
+			}
+			
+			// Initialize when DOM is ready
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', () => {
+					updateStepIndicator(1);
+					// Check LinkedIn status on page load and log to console
+					checkLinkedInStatusOnLoad();
+				});
+			} else {
+				updateStepIndicator(1);
+				// Check LinkedIn status on page load and log to console
+				checkLinkedInStatusOnLoad();
+			}
+		</script>
+	</body>
+
+</html>

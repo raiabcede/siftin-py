@@ -1,0 +1,35 @@
+
+
+/* Overlay bg */
+.hs-overlay-backdrop{
+    left: 0;
+    top: 0;
+    background: rgba(0,0,0,0.5);
+    position: fixed;
+    height: 100%;
+    width: 100%;
+}
+
+.btn-check {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+    pointer-events: none;
+}
+
+
+html[data-card='border'].dark .card {
+  border: 1px solid var(--color-darkborder);
+} 
+
+@media screen and (max-width:1200px) {
+  .apps-scroll{
+    height: calc(100vh - 80px)
+  }
+}
+
+
+[type='text']:focus, input:where(:not([type])):focus, [type='email']:focus, [type='url']:focus, [type='password']:focus, [type='number']:focus, [type='date']:focus, [type='datetime-local']:focus, [type='month']:focus, [type='search']:focus, [type='tel']:focus, [type='time']:focus, [type='week']:focus, [multiple]:focus, textarea:focus, select:focus {
+    border: 1px solid var(--color-primary);
+    box-shadow: none;
+    outline: none;
+}

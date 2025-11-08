@@ -1,0 +1,17 @@
+.with-horizontal {
+    display: none;
+}
+html[data-layout=horizontal] .topbar {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+@media (min-width: 1300px){
+    html[data-layout=horizontal] .app-header {
+        transition: 0s;
+    }
+    html[data-layout=horizontal] .with-horizontal {
+        display: block;
+    }
+    html[data-layout=horizontal] .with-vertical {
+        display: none;
+    }
+}

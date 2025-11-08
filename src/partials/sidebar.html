@@ -1,0 +1,107 @@
+<!-- ---------------------------------- -->
+<!-- Start Vertical Layout Sidebar -->
+<!-- ---------------------------------- -->
+<div class="py-5 px-5 flex justify-between" >
+  @@include("./logo-sidebar.html")
+</div>
+<div class="scroll-sidebar" data-simplebar="">
+  <div class="px-6 mt-8 mini-layout" data-te-sidenav-menu-ref>
+    <nav class="hs-accordion-group w-full flex flex-col">
+      <ul data-te-sidenav-menu-ref id="sidebarnav">
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'sample page 1') { active activemenu dark:text-white }" href="@@webRoot/new-capture/"
+            >
+            <i class="ti ti-circle-plus  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">New Capture</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'runs') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-player-play  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Runs</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'results') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-chart-bar  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Results</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'leads') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-users  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Leads</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'exports') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-download  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Exports</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'integrations') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-plug  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Integrations</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'settings') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-settings  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Settings</span>
+          </a>
+        </li>
+
+        <li class="sidebar-item">
+          <a class="sidebar-link dark-sidebar-link  
+          @@if (context.page === 'help') { active activemenu dark:text-white }" href="@@webRoot/index.html"
+            >
+            <i class="ti ti-help-circle  text-xl flex-shrink-0"></i> <span class="hide-menu flex-shrink-0">Help</span>
+          </a>
+        </li>
+
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- Bottom User Profile -->
+<div class="px-6 pt-6  bg-surface  dark:bg-dark-surface relative">
+  <div class="bg-lightsecondary dark:bg-darksecondary p-4 rounded-md">
+    <div class="hide-menu ">
+    <div class="flex items-center">
+      <img src="@@webRoot/assets/images/profile/user-1.jpg"
+        class="h-9 w-9 rounded-full object-cover" alt="profile" />
+      <div class="ml-4 rtl:mr-4 rtl:ml-0">
+        <h5
+          class="text-base font-semibold text-dark dark:text-white">Ryan</h5>
+        <p
+          class="text-xs font-normal text-link dark:text-darklink ">Desinger</p>
+      </div>
+      <div class="ms-auto hs-tooltip hs-tooltip-toggle">
+        <a href="#"><i class="ti ti-power text-primary me-3 text-2xl "></i>
+          <span
+            class="tooltip hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible"
+            role="tooltip">
+            Logout
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+<!-- </aside> -->

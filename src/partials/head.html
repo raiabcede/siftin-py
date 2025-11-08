@@ -1,0 +1,62 @@
+<!-- Required meta tags -->
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- Prevent theme flash - Apply theme before page renders -->
+<script>
+  (function() {
+    try {
+      // Check Preline's theme storage (Preline uses 'hs_theme' with underscore)
+      var savedTheme = localStorage.getItem('hs_theme');
+      
+      // Also check for other possible theme storage keys as fallback
+      if (!savedTheme) {
+        savedTheme = localStorage.getItem('hsColorMode') || localStorage.getItem('theme') || localStorage.getItem('colorMode');
+      }
+      
+      var htmlEl = document.documentElement;
+      
+      // Apply dark mode if saved theme is dark
+      if (savedTheme === 'dark') {
+        htmlEl.classList.add('dark');
+        htmlEl.classList.remove('light');
+        htmlEl.setAttribute('data-hs-theme', 'dark');
+      } else if (savedTheme === 'light') {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        htmlEl.setAttribute('data-hs-theme', 'light');
+      } else {
+        // Default to light mode if no preference saved
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        htmlEl.setAttribute('data-hs-theme', 'light');
+      }
+    } catch (e) {
+      // Silently fail - let default theme apply
+      try {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } catch (e2) {}
+    }
+  })();
+</script>
+
+<!-- Preconnect to CDN for faster icon loading -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+<!-- Preload Tabler Icons font files for faster rendering -->
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/fonts/tabler-icons.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/fonts/tabler-icons.woff" as="font" type="font/woff" crossorigin="anonymous">
+
+<!-- Favicon icon-->
+<link rel="shortcut icon" type="image/png" href="@@webRoot/assets/images/logos/favicon.png" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+  rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<!-- Core Css -->
+<link rel="stylesheet" href="@@webRoot/assets/css/theme.css" />
+
+<!-- Icon Cache Script - Load early for better performance -->
+<script src="@@webRoot/assets/js/icon-cache.js"></script>

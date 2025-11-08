@@ -1,0 +1,53 @@
+
+<script src="@@webRoot/assets/js/theme/app.init.js"></script>
+<script src="@@webRoot/assets/js/theme/app.min.js"></script>
+<script src="@@webRoot/node_modules/simplebar/dist/simplebar.min.js"></script>
+
+<!-- Load Preline after DOM is ready to prevent initialization errors -->
+<script>
+  (function() {
+    function initPreline() {
+      // Create script elements
+      var scripts = [
+        '@@webRoot/node_modules/preline/dist/preline.js',
+        '@@webRoot/node_modules/@preline/input-number/index.js',
+        '@@webRoot/node_modules/@preline/tooltip/index.js',
+        '@@webRoot/node_modules/@preline/stepper/index.js'
+      ];
+
+      var loadScript = function(index) {
+        if (index >= scripts.length) {
+          return; // All scripts loaded
+        }
+
+        var script = document.createElement('script');
+        script.src = scripts[index];
+        script.onload = function() {
+          loadScript(index + 1); // Load next script
+        };
+        script.onerror = function() {
+          console.warn('Failed to load Preline script:', scripts[index]);
+          loadScript(index + 1); // Continue loading others
+        };
+        document.body.appendChild(script);
+      };
+
+      // Start loading scripts
+      loadScript(0);
+    }
+
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPreline);
+    } else {
+      // DOM already ready, initialize immediately
+      initPreline();
+    }
+  })();
+</script>
+
+<script src="@@webRoot/assets/js/routes.js"></script>
+<script src="@@webRoot/assets/js/theme.js"></script>
+
+
+

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "li_at",
+    "value": "AQEDAUzF6aUDC7CSAAABml8pqP0AAAGagzYs_VYAgh106wLLjnWFmO-Wl4NqR5YE0CO4JVgIincby0us70365pTDObYDeL_RTAnBMspgnxaFOi8grhrHc1-OxtU4HEXCHTCKYNSDYrds7q1CopqBMR7t",
+    "domain": ".linkedin.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  }
+]

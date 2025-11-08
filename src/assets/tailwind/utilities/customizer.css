@@ -1,0 +1,47 @@
+
+.customizer-box label.btn {
+    background: transparent !important;
+    display: flex;
+    align-items: center;
+    transition: all 0.1s ease-in 0s;
+    min-width: 80px;
+}
+.customizer-box label.btn:hover {
+    color: var(--color-primary);
+    transform: scale(1.05);
+}
+.customizer-box .btn-check:checked + .btn, 
+.customizer-box :not(.btn-check) + .btn:active, 
+.customizer-box .btn:first-child:active, 
+.customizer-box .btn.active, .customizer-box .btn.show {
+    color: var(--color-primary);
+}
+
+.customizer-box.color-pallete .btn-check:checked + .btn .icon, .customizer-box.color-pallete :not(.btn-check) + .btn:active .icon, .customizer-box.color-pallete .btn:first-child:active .icon, .customizer-box.color-pallete .btn.active .icon, .customizer-box.color-pallete .btn.show .icon {
+    opacity: 1;
+}
+.customizer-box.color-pallete label .color-box {
+    width: 25px;
+    height: 25px;
+}
+.customizer-box.color-pallete label .color-box .icon {
+    opacity: 0;
+}
+.customizer-box.color-pallete label .color-box.skin-1 {
+    background-color: #5d87ff;
+}
+.customizer-box.color-pallete label .color-box.skin-2 {
+    background-color: #0074ba;
+}
+.customizer-box.color-pallete label .color-box.skin-3 {
+    background-color: #763ebd;
+}
+.customizer-box.color-pallete label .color-box.skin-4 {
+    background-color: #0a7ea4;
+}
+.customizer-box.color-pallete label .color-box.skin-5 {
+    background-color: #01c0c8;
+}
+.customizer-box.color-pallete label .color-box.skin-6 {
+    background-color: #fa896b;
+}
