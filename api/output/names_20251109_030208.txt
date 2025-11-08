@@ -1,0 +1,11 @@
+LinkedIn Name Extraction Results
+Date: 2025-11-09T03:02:12.845879
+URL: https://www.linkedin.com/search/results/people/?keywords=SDR%20manager&geoUrn=%5B%22103644278%22%5D
+Total Names: 2
+
+============================================================
+NAMES:
+============================================================
+
+1. Dylan Forster
+2. Amanda Newman

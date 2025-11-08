@@ -88,6 +88,26 @@ class ExtractNamesResponse(BaseModel):
     errors: Optional[List[str]] = None
 
 
+class ExtractLinksRequest(BaseModel):
+    linkedin_url: str
+    max_results: Optional[int] = 50
+    max_pages: Optional[int] = 10
+
+
+class PageLinks(BaseModel):
+    page: int
+    links: List[str]
+    count: int
+
+
+class ExtractLinksResponse(BaseModel):
+    success: bool
+    links: Optional[List[str]] = None
+    links_by_page: Optional[List[PageLinks]] = None
+    total: int
+    errors: Optional[List[str]] = None
+
+
 class SaveToLibraryRequest(BaseModel):
     linkedin_url: str
     ai_criteria: str
@@ -709,6 +729,112 @@ async def extract_names(request: ExtractNamesRequest):
             leads=[],
             total=0,
             filtered=False,
+            errors=[error_msg]
+        )
+
+
+@app.post("/api/capture/extract-links", response_model=ExtractLinksResponse)
+async def extract_links(request: ExtractLinksRequest):
+    """
+    Extract profile links/URLs from LinkedIn search results.
+    This is more reliable than extracting names since links are always present in the HTML.
+    """
+    links = []
+    links_by_page_data = []
+    errors = []
+    
+    print("=" * 60)
+    print("[API] ===== EXTRACT PROFILE LINKS REQUEST ======")
+    print(f"[API] LinkedIn URL: {request.linkedin_url}")
+    print(f"[API] Max results: {request.max_results}, Max pages: {request.max_pages}")
+    print("=" * 60)
+    
+    # Validate that the URL is a LinkedIn search results URL
+    if not request.linkedin_url or "/search/results/people" not in request.linkedin_url:
+        error_msg = f"Invalid LinkedIn URL. Please provide a LinkedIn search results URL like: https://www.linkedin.com/search/results/people/?keywords=..."
+        print(f"[API] ✗ {error_msg}")
+        return ExtractLinksResponse(
+            success=False,
+            links=[],
+            links_by_page=[],
+            total=0,
+            errors=[error_msg]
+        )
+    
+    try:
+        # Get Firefox profile path from environment variable (optional)
+        firefox_profile_path = os.getenv('FIREFOX_PROFILE_PATH')
+        if firefox_profile_path:
+            print(f"[API] Using Firefox profile: {firefox_profile_path}")
+        
+        print("[API] Extracting profile links...")
+        from linkedin_scraper import extract_profile_links_async
+        
+        try:
+            result = await extract_profile_links_async(
+                search_url=request.linkedin_url,
+                firefox_profile_path=firefox_profile_path,
+                max_results=request.max_results or 50,
+                max_pages=request.max_pages or 10,
+                headless=False,  # Set to True for headless mode
+                return_by_page=True  # Get links grouped by page
+            )
+            
+            # Handle both dict (with by_page) and list (legacy list responses)
+            if isinstance(result, dict):
+                links = result.get('links', [])
+                links_by_page_data = result.get('by_page', [])
+            else:
+                # Legacy: just a list of links
+                links = result if isinstance(result, list) else []
+                links_by_page_data = []
+            
+            # Convert to PageLinks models
+            links_by_page = []
+            for page_data in links_by_page_data:
+                if isinstance(page_data, dict):
+                    links_by_page.append(PageLinks(
+                        page=page_data.get('page', 0),
+                        links=page_data.get('links', []),
+                        count=page_data.get('count', 0)
+                    ))
+            
+            total = len(links)
+            
+            if total > 0:
+                print(f"[API] ✓ Successfully extracted {total} profile links")
+            else:
+                print("[API] ⚠️ No profile links were extracted")
+                errors.append("No profile links were extracted. Check your LinkedIn URL and Firefox profile.")
+            
+        except Exception as extract_error:
+            error_msg = str(extract_error)
+            print(f"[API] ✗ Extraction error: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            errors.append(f"Extraction error: {error_msg}")
+            links = []
+            links_by_page = []
+        
+        return ExtractLinksResponse(
+            success=len(links) > 0,
+            links=links if links else None,
+            links_by_page=links_by_page if links_by_page else None,
+            total=len(links),
+            errors=errors if errors else None
+        )
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] Error extracting links: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        
+        return ExtractLinksResponse(
+            success=False,
+            links=[],
+            links_by_page=[],
+            total=0,
             errors=[error_msg]
         )
 
