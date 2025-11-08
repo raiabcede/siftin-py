@@ -50,9 +50,9 @@
 										<p class="text-base text-link dark:text-darklink">Create a new LinkedIn lead capture run</p>
 									</div>
 									<!-- LinkedIn Login Status Indicator -->
-									<div id="linkedin-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark cursor-pointer hover:shadow-md transition-shadow" title="Click to check LinkedIn authentication status" onclick="checkLinkedInStatus()">
-										<div id="linkedin-status-icon" class="w-3 h-3 rounded-full bg-gray-400"></div>
-										<span id="linkedin-status-text" class="text-sm text-link dark:text-darklink">Click to check status</span>
+									<div id="linkedin-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark transition-shadow" title="Firefox LinkedIn status checker - automatically checks on page load">
+										<div id="linkedin-status-icon" class="w-3 h-3 rounded-full bg-gray-400 animate-pulse"></div>
+										<span id="linkedin-status-text" class="text-sm text-link dark:text-darklink">Checking status...</span>
 									</div>
 								</div>
 							</div>
@@ -1109,11 +1109,17 @@
 						if (result.logged_in === true && result.brightdata_configured) {
 							// BrightData API configured and ready
 							statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
-							statusText.textContent = result.message || 'BrightData: Configured';
+							// Show user name if available
+							const displayText = result.user_name 
+								? `LinkedIn: ${result.user_name}` 
+								: (result.message || 'LinkedIn: Logged In (Firefox)');
+							statusText.textContent = displayText;
 							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
 							statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
-							const tooltip = (result.note || result.suggestion || '').trim();
-							statusIndicator.title = tooltip || 'BrightData API is configured and ready';
+							const tooltip = result.user_name 
+								? `Logged in as ${result.user_name} (Firefox) - Ready to capture leads`
+								: ((result.note || result.suggestion || 'LinkedIn authentication verified via Firefox profile').trim());
+							statusIndicator.title = tooltip || 'LinkedIn: Logged In (Firefox) - Ready to capture leads';
 							
 							// Make status indicator clickable to open BrightData dashboard
 							if (result.brightdata_dashboard_url) {
@@ -1124,6 +1130,22 @@
 								};
 								statusIndicator.title = (tooltip || 'BrightData API is configured') + ' (Click to open BrightData Dashboard)';
 							}
+						} else if (result.logged_in === true) {
+							// Logged in but BrightData not configured
+							statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
+							// Show user name if available
+							const displayText = result.user_name 
+								? `LinkedIn: ${result.user_name}` 
+								: (result.message || 'LinkedIn: Logged In (Firefox)');
+							statusText.textContent = displayText;
+							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+							statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
+							const tooltip = result.user_name 
+								? `Logged in as ${result.user_name} (Firefox)`
+								: ((result.note || result.suggestion || 'LinkedIn authentication verified via Firefox profile').trim());
+							statusIndicator.title = tooltip || 'LinkedIn: Logged In (Firefox)';
+							statusIndicator.style.cursor = 'default';
+							statusIndicator.onclick = null;
 						} else {
 							// BrightData not configured
 							statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500';
@@ -1145,19 +1167,15 @@
 					} else if (result.status === 'error') {
 						// Error state - check if it's authentication error
 						if (result.logged_in === false) {
-							// Authentication required - show login button
+							// Authentication required - Firefox profile not logged in
 							statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
-							statusText.textContent = result.message || 'LinkedIn: Not Logged In';
+							statusText.textContent = result.message || 'LinkedIn: Not Logged In (Firefox)';
 							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
 							statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
-							const tooltip = (result.note || result.error || result.suggestion || '').trim();
-							statusIndicator.title = tooltip || 'LinkedIn authentication required - Click to redirect to LinkedIn';
-							
-							// Make clickable - redirect to LinkedIn
-							statusIndicator.style.cursor = 'pointer';
-							statusIndicator.onclick = () => {
-								checkLinkedInStatus(); // This will redirect to LinkedIn
-							};
+							const tooltip = (result.note || result.error || result.suggestion || 'Please log in to LinkedIn in your Firefox profile. The status checker uses Firefox to verify authentication.').trim();
+							statusIndicator.title = tooltip || 'LinkedIn authentication required - Please log in to LinkedIn in your Firefox profile';
+							statusIndicator.style.cursor = 'default';
+							statusIndicator.onclick = null;
 						} else {
 							// Other error - BrightData not configured
 							statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500';
@@ -1214,35 +1232,46 @@
 				}
 			}
 			
-			// Check LinkedIn login status on page load and log to console
+			// Check LinkedIn login status automatically on page load using Firefox (optimized)
 			async function checkLinkedInStatusOnLoad() {
-				// Check if we're returning from LinkedIn
-				const urlParams = new URLSearchParams(window.location.search);
-				const fromLinkedIn = urlParams.get('fromLinkedIn');
+				const statusIndicator = document.getElementById('linkedin-status-indicator');
+				const statusIcon = document.getElementById('linkedin-status-icon');
+				const statusText = document.getElementById('linkedin-status-text');
 				
-				if (fromLinkedIn === 'true') {
-					// We just returned from LinkedIn, check status
-					console.log('%c[LinkedIn Status] Returning from LinkedIn, checking status...', 'color: #0077b5; font-weight: bold;');
-					// The checkLinkedInStatus function will handle this
-					await checkLinkedInStatus();
-					return;
-				}
+				if (!statusIndicator || !statusIcon || !statusText) return;
+				
+				// Show checking state
+				statusIcon.className = 'w-3 h-3 rounded-full bg-blue-500 animate-pulse';
+				statusText.textContent = 'Checking...';
+				statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20';
+				statusText.className = 'text-sm text-blue-700 dark:text-blue-300 font-medium';
+				statusIndicator.title = 'Firefox LinkedIn status checker - checking...';
 				
 				try {
-					console.log('%c[LinkedIn Status] Checking login status...', 'color: #0077b5; font-weight: bold;');
+					console.log('%c[Firefox Status Check] Checking LinkedIn login status (cached if available)...', 'color: #0077b5; font-weight: bold;');
 					const url = '/api/linkedin-login-status';
-					const timeout = 50000; // 50s timeout for full BrightData test (reduced wait time + API call)
+					const timeout = 30000; // 30s timeout - first check may take 10-20s, cached results are instant
 					const result = await apiCall(url, 'GET', null, timeout);
 					
+					// Update UI with result
+					await updateStatusFromResult(result, statusIndicator, statusIcon, statusText);
+					
+					// Log to console
 					if (result && result.logged_in === true) {
-						console.log('%c✓ LinkedIn: LOGGED IN', 'color: #00a86b; font-weight: bold; font-size: 14px;');
+						const cacheNote = result.cached ? ' (cached)' : '';
+						const userNameNote = result.user_name ? ` as ${result.user_name}` : '';
+						console.log(`%c✓ LinkedIn: LOGGED IN (Firefox)${userNameNote}${cacheNote}`, 'color: #00a86b; font-weight: bold; font-size: 14px;');
 						console.log(`%c  Status: ${result.message || 'Authenticated'}`, 'color: #00a86b;');
+						if (result.user_name) {
+							console.log(`%c  User: ${result.user_name}`, 'color: #00a86b;');
+						}
 						if (result.note) {
 							console.log(`%c  ${result.note}`, 'color: #00a86b;');
 						}
 						console.log('%c  Ready to capture leads', 'color: #00a86b;');
 					} else if (result && result.logged_in === false) {
-						console.log('%c✗ LinkedIn: NOT LOGGED IN', 'color: #d32f2f; font-weight: bold; font-size: 14px;');
+						const cacheNote = result.cached ? ' (cached)' : '';
+						console.log(`%c✗ LinkedIn: NOT LOGGED IN (Firefox)${cacheNote}`, 'color: #d32f2f; font-weight: bold; font-size: 14px;');
 						console.log(`%c  Status: ${result.message || 'Authentication Required'}`, 'color: #d32f2f;');
 						if (result.error) {
 							console.log(`%c  Error: ${result.error}`, 'color: #d32f2f;');
@@ -1250,17 +1279,38 @@
 						if (result.note) {
 							console.log(`%c  ${result.note}`, 'color: #d32f2f;');
 						}
-						console.log('%c  Click the status indicator to redirect to LinkedIn and log in', 'color: #0077b5; font-weight: bold;');
+						console.log('%c  Please log in to LinkedIn in your Firefox profile', 'color: #0077b5; font-weight: bold;');
 					} else {
-						console.log('%c⚠ LinkedIn: Status Unknown', 'color: #ff9800; font-weight: bold; font-size: 14px;');
+						const cacheNote = result?.cached ? ' (cached)' : '';
+						console.log(`%c⚠ LinkedIn: Status Unknown (Firefox)${cacheNote}`, 'color: #ff9800; font-weight: bold; font-size: 14px;');
 						console.log(`%c  Status: ${result?.message || 'Unable to determine status'}`, 'color: #ff9800;');
 						if (result?.note) {
 							console.log(`%c  ${result.note}`, 'color: #ff9800;');
 						}
 					}
 				} catch (error) {
-					console.log('%c⚠ LinkedIn: Status check failed', 'color: #ff9800; font-weight: bold; font-size: 14px;');
+					console.log('%c⚠ LinkedIn: Status check failed (Firefox)', 'color: #ff9800; font-weight: bold; font-size: 14px;');
 					console.log(`%c  Error: ${error.message || 'Unknown error'}`, 'color: #ff9800;');
+					
+					// Check if it's a timeout error
+					const isTimeout = error.message && error.message.includes('timeout');
+					
+					if (isTimeout) {
+						// Timeout - show warning but suggest it may still be checking
+						statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500';
+						statusText.textContent = 'Check timed out';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+						statusText.className = 'text-sm text-yellow-700 dark:text-yellow-300 font-medium';
+						statusIndicator.title = 'Status check timed out. Firefox may still be checking in the background. Try refreshing the page in a few seconds.';
+						console.log('%c  Note: The check may still be running in the background. Try refreshing in a few seconds.', 'color: #ff9800;');
+					} else {
+						// Other error
+						statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+						statusText.textContent = 'Status check failed';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+						statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+						statusIndicator.title = error.message || 'Failed to check LinkedIn status with Firefox';
+					}
 				}
 			}
 			

@@ -140,9 +140,18 @@ async def root():
     return {"status": "ok", "message": "LinkedIn Lead Capture API is running"}
 
 
+# Cache for LinkedIn auth status (to avoid repeated browser launches)
+_linkedin_auth_cache = {
+    "result": None,
+    "timestamp": 0,
+    "ttl": 300  # Cache for 5 minutes (300 seconds)
+}
+
 @app.get("/api/linkedin-auth-status")
 async def check_linkedin_auth_status():
-    """Check LinkedIn authentication status using Firefox profile"""
+    """Check LinkedIn authentication status using Firefox profile (with caching)"""
+    import time
+    
     firefox_profile_path = os.getenv('FIREFOX_PROFILE_PATH')
     
     if not firefox_profile_path:
@@ -153,13 +162,26 @@ async def check_linkedin_auth_status():
             "note": "Set FIREFOX_PROFILE_PATH environment variable with your Firefox profile path"
         }
     
+    # Check cache first
+    current_time = time.time()
+    if (_linkedin_auth_cache["result"] is not None and 
+        current_time - _linkedin_auth_cache["timestamp"] < _linkedin_auth_cache["ttl"]):
+        cached_result = _linkedin_auth_cache["result"].copy()
+        cached_result["cached"] = True
+        return cached_result
+    
     try:
         from linkedin_auth_check import check_linkedin_auth_async
         
+        # Use headless mode for faster checks
         result = await check_linkedin_auth_async(
             firefox_profile_path=firefox_profile_path,
-            headless=False  # Set to True for headless mode
+            headless=True  # Use headless for speed
         )
+        
+        # Update cache
+        _linkedin_auth_cache["result"] = result
+        _linkedin_auth_cache["timestamp"] = current_time
         
         return result
         
@@ -182,6 +204,17 @@ async def check_linkedin_login_status():
     """Check LinkedIn login status (alias for linkedin-auth-status)"""
     # Use the same function as linkedin-auth-status
     return await check_linkedin_auth_status()
+
+
+@app.post("/api/linkedin-auth-status/clear-cache")
+async def clear_linkedin_auth_cache():
+    """Clear the LinkedIn auth status cache (force fresh check on next request)"""
+    _linkedin_auth_cache["result"] = None
+    _linkedin_auth_cache["timestamp"] = 0
+    return {
+        "status": "success",
+        "message": "Cache cleared. Next status check will be fresh."
+    }
 
 
 @app.get("/api/firefox-profile")
