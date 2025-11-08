@@ -65,6 +65,29 @@ class FindLeadsResponse(BaseModel):
     errors: Optional[List[str]] = None
 
 
+class ExtractNamesRequest(BaseModel):
+    linkedin_url: str
+    ai_criteria: Optional[str] = None
+    max_results: Optional[int] = 50
+    max_pages: Optional[int] = 10
+
+
+class PageNames(BaseModel):
+    page: int
+    names: List[str]
+    count: int
+
+
+class ExtractNamesResponse(BaseModel):
+    success: bool
+    names: Optional[List[str]] = None
+    names_by_page: Optional[List[PageNames]] = None
+    leads: Optional[List[Lead]] = None
+    total: int
+    filtered: bool = False
+    errors: Optional[List[str]] = None
+
+
 class SaveToLibraryRequest(BaseModel):
     linkedin_url: str
     ai_criteria: str
@@ -540,6 +563,154 @@ async def export_leads(request: ExportRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting leads: {str(e)}")
+
+
+@app.post("/api/capture/extract-names", response_model=ExtractNamesResponse)
+async def extract_names(request: ExtractNamesRequest):
+    """
+    Extract names from LinkedIn search results, grouped by page.
+    Returns all names from each page of search results.
+    AI criteria is optional - if not provided, returns all names from all pages.
+    """
+    names = []
+    names_by_page_data = []
+    leads = []
+    errors = []
+    is_filtered = False
+    
+    print("=" * 60)
+    print("[API] ===== EXTRACT NAMES REQUEST ======")
+    print(f"[API] LinkedIn URL: {request.linkedin_url}")
+    print(f"[API] AI Criteria: {request.ai_criteria or 'None (names only mode)'}")
+    print(f"[API] Max results: {request.max_results}, Max pages: {request.max_pages}")
+    print("=" * 60)
+    
+    # Validate that the URL is a LinkedIn search results URL
+    if not request.linkedin_url or "/search/results/people" not in request.linkedin_url:
+        error_msg = f"Invalid LinkedIn URL. Please provide a LinkedIn search results URL like: https://www.linkedin.com/search/results/people/?keywords=..."
+        print(f"[API] ✗ {error_msg}")
+        return ExtractNamesResponse(
+            success=False,
+            names=[],
+            leads=[],
+            total=0,
+            filtered=False,
+            errors=[error_msg]
+        )
+    
+    try:
+        # Get Firefox profile path from environment variable (optional)
+        firefox_profile_path = os.getenv('FIREFOX_PROFILE_PATH')
+        if firefox_profile_path:
+            print(f"[API] Using Firefox profile: {firefox_profile_path}")
+        
+        # Skip AI filtering for now - just extract names
+        # If AI criteria is provided in the future, use extract_and_filter_names
+        if False and request.ai_criteria and request.ai_criteria.strip():
+            print("[API] Using extract-and-filter mode (extract all, then filter with AI)...")
+            from linkedin_scraper import extract_and_filter_names_async
+            
+            try:
+                filtered_profiles = await extract_and_filter_names_async(
+                    search_url=request.linkedin_url,
+                    ai_criteria=request.ai_criteria.strip(),
+                    firefox_profile_path=firefox_profile_path,
+                    max_results=request.max_results or 50,
+                    max_pages=request.max_pages or 10,
+                    headless=False  # Set to True for headless mode
+                )
+                
+                # Convert to Lead models
+                for profile in filtered_profiles:
+                    try:
+                        leads.append(Lead(**profile))
+                    except Exception as e:
+                        print(f"[API] Error converting profile to Lead: {e}")
+                        continue
+                
+                if leads:
+                    print(f"[API] ✓ Extracted and filtered to {len(leads)} matching profiles")
+                    is_filtered = True
+                else:
+                    print("[API] ⚠️ No matching profiles found after filtering")
+                    errors.append("No profiles matched the AI criteria. Try adjusting your criteria or extracting without filtering first.")
+            except Exception as extract_error:
+                error_msg = str(extract_error)
+                print(f"[API] ✗ Extraction/filtering error: {error_msg}")
+                import traceback
+                traceback.print_exc()
+                errors.append(f"Extraction/filtering error: {error_msg}")
+                leads = []
+        else:
+            # Fast mode: names only
+            print("[API] Using fast name extraction (names only mode)...")
+            from linkedin_scraper import extract_names_only_async
+            
+            try:
+                result = await extract_names_only_async(
+                    search_url=request.linkedin_url,
+                    firefox_profile_path=firefox_profile_path,
+                    max_results=request.max_results or 50,
+                    max_pages=request.max_pages or 10,
+                    headless=False,  # Set to True for headless mode
+                    return_by_page=True  # Get names grouped by page
+                )
+                
+                # Handle both dict (with by_page) and list (legacy list responses
+                if isinstance(result, dict):
+                    names = result.get('names', [])
+                    names_by_page_data = result.get('by_page', [])
+                else:
+                    # Legacy: just a list of names
+                    names = result if isinstance(result, list) else []
+                    names_by_page_data = []
+                
+                if names:
+                    print(f"[API] ✓ Extracted {len(names)} names from {len(names_by_page_data)} pages")
+                else:
+                    print("[API] ⚠️ No names found")
+                    errors.append("No names found. Make sure you're logged into LinkedIn in your Firefox profile, or provide a valid Firefox profile path via FIREFOX_PROFILE_PATH environment variable.")
+            except Exception as extract_error:
+                error_msg = str(extract_error)
+                print(f"[API] ✗ Extraction error: {error_msg}")
+                import traceback
+                traceback.print_exc()
+                errors.append(f"Extraction error: {error_msg}")
+                names = []
+                names_by_page_data = []
+        
+        total = len(leads) if leads else len(names)
+        print(f"[API] Returning {total} results")
+        print("=" * 60)
+        
+        # Convert names_by_page_data to PageNames models
+        names_by_page = None
+        if names_by_page_data:
+            names_by_page = [PageNames(page=d['page'], names=d['names'], count=d['count']) for d in names_by_page_data]
+        
+        return ExtractNamesResponse(
+            success=total > 0,
+            names=names if names else None,
+            names_by_page=names_by_page,
+            leads=leads if leads else None,
+            total=total,
+            filtered=is_filtered,
+            errors=errors if errors else None
+        )
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] Error extracting names: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        
+        return ExtractNamesResponse(
+            success=False,
+            names=[],
+            leads=[],
+            total=0,
+            filtered=False,
+            errors=[error_msg]
+        )
 
 
 if __name__ == "__main__":
