@@ -484,8 +484,9 @@ async def get_linkedin_user_name():
             "message": "Please log in to LinkedIn in your browser, or configure BRIGHTDATA_API_TOKEN and BRIGHTDATA_COLLECTOR_ID"
         }
     
-    # Try to get user's own profile - LinkedIn /me redirects to user's profile
-    profile_url = "https://www.linkedin.com/me"
+    # Try to get user's own profile - navigate to feed and extract profile URL
+    # Note: LinkedIn doesn't have a /me endpoint, so we'll use the feed page
+    profile_url = "https://www.linkedin.com/feed/"
     
     try:
         print("[API] Fetching logged-in user's profile via BrightData...")

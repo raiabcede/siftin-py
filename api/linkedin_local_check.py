@@ -266,16 +266,16 @@ def check_linkedin_login_status_local() -> Dict:
                 # Fallback to URL check only
                 is_logged_in = "/login" not in current_url and "linkedin.com/feed" in current_url
             
-            # Additional verification: Try to access profile page
+            # Additional verification: Try to access feed page (protected endpoint)
             if is_logged_in:
                 try:
-                    page.goto("https://www.linkedin.com/me", wait_until='domcontentloaded', timeout=10000)
+                    page.goto("https://www.linkedin.com/feed/", wait_until='domcontentloaded', timeout=10000)
                     page.wait_for_timeout(1000)
-                    profile_url = page.url
+                    feed_url = page.url
                     
                     # If redirected to login, cookies are invalid
-                    if "/login" in profile_url:
-                        print("[LinkedIn Local Check] [FAIL] Cookies invalid - redirected to login on profile page")
+                    if "/login" in feed_url:
+                        print("[LinkedIn Local Check] [FAIL] Cookies invalid - redirected to login on feed page")
                         browser.close()
                         return {
                             "logged_in": False,
@@ -286,7 +286,7 @@ def check_linkedin_login_status_local() -> Dict:
                             "linkedin_url": "https://www.linkedin.com/login"
                         }
                     
-                    print("[LinkedIn Local Check] [OK] Profile page accessible - logged in")
+                    print("[LinkedIn Local Check] [OK] Feed page accessible - logged in")
                 except Exception as e:
                     print(f"[LinkedIn Local Check] Warning: Could not verify profile page: {e}")
             
@@ -457,15 +457,15 @@ def check_linkedin_login_local() -> Optional[bool]:
             
             # Additional verification: Try to access a protected endpoint
             if is_logged_in:
-                # Double-check by trying to access profile or another protected page
+                # Double-check by trying to access feed page (protected endpoint)
                 try:
-                    page.goto("https://www.linkedin.com/me", wait_until="domcontentloaded", timeout=10000)
+                    page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded", timeout=10000)
                     page.wait_for_timeout(1000)
-                    profile_url = page.url
+                    feed_url = page.url
                     
                     # If redirected to login, cookies are invalid
-                    if "/login" in profile_url:
-                        print("[LinkedIn Local Check] [FAIL] Cookies invalid - redirected to login on profile page")
+                    if "/login" in feed_url:
+                        print("[LinkedIn Local Check] [FAIL] Cookies invalid - redirected to login on feed page")
                         browser.close()
                         return False
                     
@@ -736,9 +736,9 @@ def get_linkedin_user_name() -> Optional[Dict]:
             
             page = context.new_page()
             
-            # Navigate to user's own profile
-            print("[LinkedIn Local Check] Navigating to LinkedIn profile...")
-            page.goto("https://www.linkedin.com/me", wait_until='networkidle', timeout=30000)
+            # Navigate to feed first to verify login and get profile URL
+            print("[LinkedIn Local Check] Navigating to LinkedIn feed...")
+            page.goto("https://www.linkedin.com/feed/", wait_until='networkidle', timeout=30000)
             
             # Check if we're redirected to login page
             current_url = page.url
@@ -751,6 +751,41 @@ def get_linkedin_user_name() -> Optional[Dict]:
             
             # Wait a bit for JS to finish rendering
             page.wait_for_timeout(2000)
+            
+            # Try to extract profile URL from feed page navigation
+            profile_url = None
+            try:
+                # Look for profile link in navigation - common selectors
+                profile_link_selectors = [
+                    "a[href*='/in/']",  # Profile link in nav
+                    "a[data-control-name='nav.settings_profile']",  # Settings profile link
+                    "a[href*='/me']",  # Me link (though /me doesn't work, the href might point to actual profile)
+                    ".global-nav__me-photo",  # Profile photo in nav
+                    "a.global-nav__primary-link-me"  # Me menu link
+                ]
+                
+                for selector in profile_link_selectors:
+                    try:
+                        link_element = page.locator(selector).first
+                        if link_element.count() > 0:
+                            href = link_element.get_attribute('href')
+                            if href and '/in/' in href:
+                                profile_url = href if href.startswith('http') else f"https://www.linkedin.com{href}"
+                                print(f"[LinkedIn Local Check] Found profile URL: {profile_url}")
+                                break
+                    except:
+                        continue
+                
+                # If we found a profile URL, navigate to it
+                if profile_url:
+                    print(f"[LinkedIn Local Check] Navigating to profile: {profile_url}")
+                    page.goto(profile_url, wait_until='networkidle', timeout=30000)
+                    page.wait_for_timeout(2000)
+                else:
+                    # Fallback: try to extract name from feed page directly
+                    print("[LinkedIn Local Check] Could not find profile URL, trying to extract name from feed...")
+            except Exception as e:
+                print(f"[LinkedIn Local Check] Error extracting profile URL: {e}")
             
             # Extract name from page
             name = None
