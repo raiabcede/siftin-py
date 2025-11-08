@@ -1,8 +1,9 @@
 """
-Quick script to extract names from LinkedIn search results
+Quick script to extract profile links from LinkedIn search results
 Usage: 
   python extract_names_quick.py "https://www.linkedin.com/search/results/people/?keywords=..."
   python extract_names_quick.py "https://..." 100 5
+  python extract_names_quick.py "https://..." 100 5 --save  # Save results to files
 """
 import sys
 import os
@@ -29,28 +30,33 @@ FIREFOX_PROFILE_PATH = os.getenv('FIREFOX_PROFILE_PATH')
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python extract_names_quick.py <linkedin_search_url> [max_results] [max_pages]")
+        print("Usage: python extract_names_quick.py <linkedin_search_url> [max_results] [max_pages] [--save]")
         print("\nExamples:")
         print('  python extract_names_quick.py "https://www.linkedin.com/search/results/people/?keywords=sales"')
         print('  python extract_names_quick.py "https://..." 100 5')
+        print('  python extract_names_quick.py "https://..." 100 5 --save  # Save results to files')
+        print("\nNote: Files are only saved when --save flag is used. Use --save or --export to generate output files.")
         sys.exit(1)
     
     linkedin_url = sys.argv[1]
     max_results = 50
     max_pages = 1
+    save_files = False
     
     # Parse arguments
-    if len(sys.argv) > 2:
-        try:
-            max_results = int(sys.argv[2])
-        except ValueError:
-            pass
-    
-    if len(sys.argv) > 3:
-        try:
-            max_pages = int(sys.argv[3])
-        except ValueError:
-            pass
+    for arg in sys.argv[2:]:
+        if arg in ['--save', '--export']:
+            save_files = True
+        else:
+            try:
+                # Try to parse as integer
+                num = int(arg)
+                if max_results == 50:  # First number is max_results
+                    max_results = num
+                elif max_pages == 1:  # Second number is max_pages
+                    max_pages = num
+            except ValueError:
+                pass
     
     print("\n" + "="*60)
     print("LINKEDIN PROFILE LINK EXTRACTION")
@@ -78,57 +84,61 @@ def main():
         if links:
             print(f"\n✓ Successfully extracted {len(links)} profile links!")
             
-            # Save results to files
-            try:
-                # Prepare output directory (in api folder)
-                output_dir = Path(__file__).parent / "output"
-                if not output_dir.exists():
-                    output_dir.mkdir()
-                
-                # Create timestamp for filename
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                
-                # Save as JSON
-                json_data = {
-                    "extraction_date": datetime.now().isoformat(),
-                    "linkedin_url": linkedin_url,
-                    "max_results": max_results,
-                    "max_pages": max_pages,
-                    "total_links": len(links),
-                    "profile_links": links
-                }
-                json_file = output_dir / f"profile_links_{timestamp}.json"
-                with open(json_file, "w", encoding="utf-8") as f:
-                    json.dump(json_data, f, indent=2, ensure_ascii=False)
-                print(f"\n✓ Saved JSON to: {json_file}")
-                
-                # Save as CSV
-                csv_file = output_dir / f"profile_links_{timestamp}.csv"
-                with open(csv_file, "w", newline="", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["#", "Profile URL", "Extraction Date", "Search URL"])
-                    for idx, link in enumerate(links, 1):
-                        writer.writerow([idx, link, datetime.now().isoformat(), linkedin_url])
-                print(f"✓ Saved CSV to: {csv_file}")
-                
-                # Save as simple text file
-                txt_file = output_dir / f"profile_links_{timestamp}.txt"
-                with open(txt_file, "w", encoding="utf-8") as f:
-                    f.write(f"LinkedIn Profile Link Extraction Results\n")
-                    f.write(f"Date: {datetime.now().isoformat()}\n")
-                    f.write(f"Search URL: {linkedin_url}\n")
-                    f.write(f"Total Links: {len(links)}\n")
-                    f.write(f"\n{'='*60}\n")
-                    f.write(f"PROFILE LINKS:\n")
-                    f.write(f"{'='*60}\n\n")
-                    for idx, link in enumerate(links, 1):
-                        f.write(f"{idx}. {link}\n")
-                print(f"✓ Saved TXT to: {txt_file}")
-                
-                print(f"\n📁 All files saved in: {output_dir.absolute()}")
-                
-            except Exception as save_error:
-                print(f"\n⚠️ Warning: Could not save results to file: {save_error}")
+            # Only save results to files if --save or --export flag is used
+            if save_files:
+                # Save results to files
+                try:
+                    # Prepare output directory (in api folder)
+                    output_dir = Path(__file__).parent / "output"
+                    if not output_dir.exists():
+                        output_dir.mkdir()
+                    
+                    # Create timestamp for filename
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    
+                    # Save as JSON
+                    json_data = {
+                        "extraction_date": datetime.now().isoformat(),
+                        "linkedin_url": linkedin_url,
+                        "max_results": max_results,
+                        "max_pages": max_pages,
+                        "total_links": len(links),
+                        "profile_links": links
+                    }
+                    json_file = output_dir / f"profile_links_{timestamp}.json"
+                    with open(json_file, "w", encoding="utf-8") as f:
+                        json.dump(json_data, f, indent=2, ensure_ascii=False)
+                    print(f"\n✓ Saved JSON to: {json_file}")
+                    
+                    # Save as CSV
+                    csv_file = output_dir / f"profile_links_{timestamp}.csv"
+                    with open(csv_file, "w", newline="", encoding="utf-8") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["#", "Profile URL", "Extraction Date", "Search URL"])
+                        for idx, link in enumerate(links, 1):
+                            writer.writerow([idx, link, datetime.now().isoformat(), linkedin_url])
+                    print(f"✓ Saved CSV to: {csv_file}")
+                    
+                    # Save as simple text file
+                    txt_file = output_dir / f"profile_links_{timestamp}.txt"
+                    with open(txt_file, "w", encoding="utf-8") as f:
+                        f.write(f"LinkedIn Profile Link Extraction Results\n")
+                        f.write(f"Date: {datetime.now().isoformat()}\n")
+                        f.write(f"Search URL: {linkedin_url}\n")
+                        f.write(f"Total Links: {len(links)}\n")
+                        f.write(f"\n{'='*60}\n")
+                        f.write(f"PROFILE LINKS:\n")
+                        f.write(f"{'='*60}\n\n")
+                        for idx, link in enumerate(links, 1):
+                            f.write(f"{idx}. {link}\n")
+                    print(f"✓ Saved TXT to: {txt_file}")
+                    
+                    print(f"\n📁 All files saved in: {output_dir.absolute()}")
+                    
+                except Exception as save_error:
+                    print(f"\n⚠️ Warning: Could not save results to file: {save_error}")
+            else:
+                print("\n💡 Tip: Use --save or --export flag to save results to files")
         else:
             print("\n⚠️ No profile links were extracted. Check your LinkedIn URL and Firefox profile.")
             print("Make sure:")
