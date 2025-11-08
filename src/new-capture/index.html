@@ -931,20 +931,180 @@
 				
 				if (!statusIndicator || !statusIcon || !statusText) return;
 				
-				try {
+				// Check if we're returning from LinkedIn (legacy support)
+				const urlParams = new URLSearchParams(window.location.search);
+				const fromLinkedIn = urlParams.get('fromLinkedIn');
+				
+				if (fromLinkedIn === 'true') {
+					// We just returned from LinkedIn, check status via API
+					// Remove the parameter from URL
+					urlParams.delete('fromLinkedIn');
+					const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+					window.history.replaceState({}, '', newUrl);
+					
 					// Show checking state
 					statusIcon.className = 'w-3 h-3 rounded-full bg-gray-400 animate-pulse';
 					statusText.textContent = 'Checking...';
 					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark';
 					statusText.className = 'text-sm text-link dark:text-darklink';
 					
-					// Always perform full LinkedIn authentication test
-					const url = '/api/linkedin-login-status';
-					const timeout = 50000; // 50s for full test (10s wait + up to 30s API call + processing)
-					const result = await apiCall(url, 'GET', null, timeout);
+					try {
+						// Check status via API
+						const url = '/api/linkedin-login-status';
+						const timeout = 50000;
+						const result = await apiCall(url, 'GET', null, timeout);
+						await updateStatusFromResult(result, statusIndicator, statusIcon, statusText);
+						return;
+					} catch (error) {
+						console.error('[Frontend] Error checking status after LinkedIn redirect:', error);
+						statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+						statusText.textContent = 'Error checking status';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+						statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+						return;
+					}
+				}
+				
+				// Open LinkedIn in a popup window to check/login
+				// Show opening state
+				statusIcon.className = 'w-3 h-3 rounded-full bg-blue-500 animate-pulse';
+				statusText.textContent = 'Opening LinkedIn...';
+				statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20';
+				statusText.className = 'text-sm text-blue-700 dark:text-blue-300 font-medium';
+				
+				// Open popup window
+				const popupWidth = 800;
+				const popupHeight = 600;
+				const left = (window.screen.width - popupWidth) / 2;
+				const top = (window.screen.height - popupHeight) / 2;
+				
+				const popup = window.open(
+					'https://www.linkedin.com/feed/',
+					'linkedinLogin',
+					`width=${popupWidth},height=${popupHeight},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+				);
+				
+				if (!popup) {
+					// Popup blocked
+					statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+					statusText.textContent = 'Popup blocked - please allow popups';
+					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+					statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+					alert('Please allow popups for this site, then try again.');
+					return;
+				}
+				
+				// Update status
+				statusText.textContent = 'Checking if logged in...';
+				
+				// Function to check authentication status
+				const checkAuthStatus = async (closePopupIfLoggedIn = false) => {
+					statusIcon.className = 'w-3 h-3 rounded-full bg-gray-400 animate-pulse';
+					statusText.textContent = 'Checking authentication...';
 					
-					linkedinLoginStatus = result.logged_in;
-					
+					try {
+						const url = '/api/linkedin-login-status';
+						const timeout = 50000;
+						const result = await apiCall(url, 'GET', null, timeout);
+						
+						// If user is logged in and we should close popup, close it
+						if (closePopupIfLoggedIn && result && result.logged_in === true && !popup.closed) {
+							popup.close();
+							statusText.textContent = 'Already logged in - closing popup...';
+						}
+						
+						await updateStatusFromResult(result, statusIndicator, statusIcon, statusText);
+					} catch (error) {
+						console.error('[Frontend] Error checking status:', error);
+						statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+						statusText.textContent = 'Error checking status';
+						statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+						statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+					}
+				};
+				
+				// Check authentication status immediately to see if already logged in
+				setTimeout(() => {
+					checkAuthStatus(true); // Pass true to close popup if logged in
+				}, 2000); // Wait 2 seconds for popup to load
+				
+				// Poll the popup to check if it's closed and also check auth status periodically
+				let authCheckCount = 0;
+				const checkPopup = setInterval(async () => {
+					try {
+						// Check if popup is closed
+						if (popup.closed) {
+							clearInterval(checkPopup);
+							// Popup was closed, check authentication status
+							// Small delay to ensure cookies are saved
+							setTimeout(() => checkAuthStatus(false), 1000);
+							return;
+						}
+						
+						// Try to check popup URL (may fail due to cross-origin restrictions)
+						try {
+							const popupUrl = popup.location.href;
+							// If we can access the URL and it's the feed, user is logged in
+							if (popupUrl && popupUrl.includes('linkedin.com/feed')) {
+								// User is logged in! Close popup and check status
+								clearInterval(checkPopup);
+								if (!popup.closed) {
+									popup.close();
+								}
+								statusText.textContent = 'Logged in - checking status...';
+								setTimeout(() => checkAuthStatus(false), 1000);
+								return;
+							}
+						} catch (e) {
+							// Cross-origin error - can't access popup URL, that's normal
+							// We'll use periodic API checks instead
+						}
+						
+						// Periodically check if user is logged in (every 10 seconds)
+						// If logged in, close popup automatically
+						authCheckCount++;
+						if (authCheckCount % 20 === 0) { // Every 10 seconds (20 * 500ms)
+							try {
+								const url = '/api/linkedin-login-status';
+								const timeout = 35000; // 35 seconds - API can take up to 30 seconds
+								const result = await apiCall(url, 'GET', null, timeout);
+								
+								if (result && result.logged_in === true && !popup.closed) {
+									// User is logged in! Close popup and check full status
+									clearInterval(checkPopup);
+									popup.close();
+									statusText.textContent = 'Logged in - checking status...';
+									setTimeout(() => checkAuthStatus(false), 1000);
+								}
+							} catch (error) {
+								// Ignore timeout errors in periodic checks - they're expected while waiting
+								// Only log if it's not a timeout error
+								if (!error.message || !error.message.includes('timeout')) {
+									console.log('[Frontend] Periodic auth check error (ignored):', error.message);
+								}
+							}
+						}
+					} catch (error) {
+						console.error('[Frontend] Error checking popup:', error);
+					}
+				}, 500); // Check every 500ms
+				
+				// Stop checking after 10 minutes and close popup if still open
+				setTimeout(() => {
+					clearInterval(checkPopup);
+					if (!popup.closed) {
+						popup.close();
+					}
+					// Check status anyway
+					setTimeout(() => checkAuthStatus(false), 1000);
+				}, 600000); // 10 minutes
+			}
+			
+			// Helper function to update status UI from API result
+			async function updateStatusFromResult(result, statusIndicator, statusIcon, statusText) {
+				linkedinLoginStatus = result.logged_in;
+				
+				try {
 					if (result.status === 'success') {
 						if (result.logged_in === true && result.brightdata_configured) {
 							// BrightData API configured and ready
@@ -991,61 +1151,12 @@
 							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
 							statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
 							const tooltip = (result.note || result.error || result.suggestion || '').trim();
-							statusIndicator.title = tooltip || 'LinkedIn authentication required - Click to open login window';
+							statusIndicator.title = tooltip || 'LinkedIn authentication required - Click to redirect to LinkedIn';
 							
-							// Make clickable - open login window
+							// Make clickable - redirect to LinkedIn
 							statusIndicator.style.cursor = 'pointer';
-							statusIndicator.onclick = async () => {
-								// Show loading state
-								statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-pulse';
-								statusText.textContent = 'Opening login window...';
-								
-								try {
-									console.log('[Frontend] Calling /api/linkedin-open-login...');
-									const loginResult = await apiCall('/api/linkedin-open-login', 'GET', null, 10000);
-									console.log('[Frontend] Login result:', loginResult);
-									
-									if (loginResult && loginResult.success) {
-										statusIcon.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-pulse';
-										statusText.textContent = 'Browser window opened - please log in';
-										statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
-										statusText.className = 'text-sm text-yellow-700 dark:text-yellow-300 font-medium';
-										
-										// Show message to user
-										alert('A browser window has opened for LinkedIn login. Please log in there. The window will close automatically after successful login, and your status will update.');
-										
-										// Poll for status every 5 seconds
-										const pollInterval = setInterval(async () => {
-											try {
-												const statusResult = await apiCall('/api/linkedin-login-status', 'GET', null, 10000);
-												if (statusResult && statusResult.logged_in === true) {
-													clearInterval(pollInterval);
-													statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
-													statusText.textContent = 'Login successful!';
-													statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
-													statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
-													checkLinkedInStatus(); // Refresh full status
-												}
-											} catch (e) {
-												console.error('[Frontend] Error polling status:', e);
-											}
-										}, 5000);
-										
-										// Stop polling after 5 minutes
-										setTimeout(() => {
-											clearInterval(pollInterval);
-										}, 300000);
-									} else {
-										statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
-										statusText.textContent = result.message || 'LinkedIn: Not Logged In';
-										alert(loginResult?.note || loginResult?.error || 'Failed to open login window. Please try again.');
-									}
-								} catch (error) {
-									console.error('[Frontend] Error opening login window:', error);
-									statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
-									statusText.textContent = result.message || 'LinkedIn: Not Logged In';
-									alert('Error opening login window: ' + (error.message || 'Unknown error') + '. Please check the console for details.');
-								}
+							statusIndicator.onclick = () => {
+								checkLinkedInStatus(); // This will redirect to LinkedIn
 							};
 						} else {
 							// Other error - BrightData not configured
@@ -1105,6 +1216,18 @@
 			
 			// Check LinkedIn login status on page load and log to console
 			async function checkLinkedInStatusOnLoad() {
+				// Check if we're returning from LinkedIn
+				const urlParams = new URLSearchParams(window.location.search);
+				const fromLinkedIn = urlParams.get('fromLinkedIn');
+				
+				if (fromLinkedIn === 'true') {
+					// We just returned from LinkedIn, check status
+					console.log('%c[LinkedIn Status] Returning from LinkedIn, checking status...', 'color: #0077b5; font-weight: bold;');
+					// The checkLinkedInStatus function will handle this
+					await checkLinkedInStatus();
+					return;
+				}
+				
 				try {
 					console.log('%c[LinkedIn Status] Checking login status...', 'color: #0077b5; font-weight: bold;');
 					const url = '/api/linkedin-login-status';
@@ -1127,43 +1250,7 @@
 						if (result.note) {
 							console.log(`%c  ${result.note}`, 'color: #d32f2f;');
 						}
-						console.log('%c  Opening login window automatically...', 'color: #0077b5; font-weight: bold;');
-						
-						// Automatically open login window after 2 seconds
-						setTimeout(async () => {
-							try {
-								console.log('[Frontend] Auto-opening LinkedIn login window...');
-								const loginResult = await apiCall('/api/linkedin-open-login', 'GET', null, 10000);
-								if (loginResult && loginResult.success) {
-									console.log('%c✓ Login window opened! Please log in to LinkedIn in the browser window.', 'color: #0077b5; font-weight: bold;');
-									alert('A browser window has opened for LinkedIn login. Please log in there. The window will close automatically after successful login.');
-									
-									// Poll for status every 5 seconds
-									const pollInterval = setInterval(async () => {
-										try {
-											const statusResult = await apiCall('/api/linkedin-login-status', 'GET', null, 10000);
-											if (statusResult && statusResult.logged_in === true) {
-												clearInterval(pollInterval);
-												console.log('%c✓ LinkedIn: LOGGED IN', 'color: #00a86b; font-weight: bold; font-size: 14px;');
-												checkLinkedInStatus(); // Refresh UI status
-											}
-										} catch (e) {
-											console.error('[Frontend] Error polling status:', e);
-										}
-									}, 5000);
-									
-									// Stop polling after 5 minutes
-									setTimeout(() => {
-										clearInterval(pollInterval);
-									}, 300000);
-								} else {
-									console.log('%c⚠ Could not open login window automatically. Please click the status indicator to open it manually.', 'color: #ff9800; font-weight: bold;');
-								}
-							} catch (error) {
-								console.error('[Frontend] Error auto-opening login window:', error);
-								console.log('%c⚠ Could not open login window automatically. Please click the status indicator to open it manually.', 'color: #ff9800; font-weight: bold;');
-							}
-						}, 2000); // Wait 2 seconds before opening
+						console.log('%c  Click the status indicator to redirect to LinkedIn and log in', 'color: #0077b5; font-weight: bold;');
 					} else {
 						console.log('%c⚠ LinkedIn: Status Unknown', 'color: #ff9800; font-weight: bold; font-size: 14px;');
 						console.log(`%c  Status: ${result?.message || 'Unable to determine status'}`, 'color: #ff9800;');

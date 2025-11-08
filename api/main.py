@@ -192,15 +192,21 @@ async def check_linkedin_login_status():
         print(f"[API] Error type: {error_type}")
         print(f"[API] Full traceback:\n{full_traceback}")
         
-        # Provide more detailed error message
-        if not error_msg or error_msg.strip() == "":
-            error_msg = f"{error_type}: An error occurred during LinkedIn login check. See server logs for details."
+        # Provide more user-friendly error messages for common errors
+        if error_type == "NotImplementedError":
+            user_message = "Your browser or platform is not supported by browser-cookie3. Please use the popup login method instead."
+        elif "timeout" in error_msg.lower():
+            user_message = "The login check timed out. Please try again or use the popup login method."
+        elif not error_msg or error_msg.strip() == "":
+            user_message = f"{error_type}: An error occurred during LinkedIn login check. See server logs for details."
+        else:
+            user_message = error_msg
         
         return {
             "logged_in": None,
             "status": "error",
             "message": "LinkedIn: Check Failed",
-            "note": f"Error checking LinkedIn login status: {error_msg}. Please try clicking the status indicator to open a login window.",
+            "note": f"{user_message} Please try clicking the status indicator to open a login window.",
             "method": "local_playwright",
             "error": error_msg,
             "error_type": error_type

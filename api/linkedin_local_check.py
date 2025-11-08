@@ -112,8 +112,13 @@ def check_linkedin_login_status_local() -> Dict:
     print("[LinkedIn Local Check] Attempting to extract LinkedIn cookies from local browsers...")
     try:
         browser_cookies = get_linkedin_cookies_for_playwright()
+    except NotImplementedError as e:
+        print(f"[LinkedIn Local Check] Browser cookie extraction not implemented for this platform: {e}")
+        print("[LinkedIn Local Check] This may happen if your browser is not supported by browser-cookie3")
+        browser_cookies = []
     except Exception as e:
-        print(f"[LinkedIn Local Check] Error extracting cookies: {e}")
+        error_type = type(e).__name__
+        print(f"[LinkedIn Local Check] Error extracting cookies: {error_type}: {e}")
         browser_cookies = []
     
     # Combine saved cookies and browser cookies (prefer browser cookies if available)
@@ -603,8 +608,16 @@ def load_all_browser_cookies():
                 else:
                     for c in maybe:
                         cj.set_cookie(c)
-        except Exception:
-            # ignore errors for loaders that fail (e.g., browser not installed)
+        except NotImplementedError as e:
+            # browser-cookie3 raises NotImplementedError for unsupported browsers/platforms
+            print(f"[LinkedIn Local Check] Browser not supported by browser-cookie3: {e}")
+            continue
+        except Exception as e:
+            # ignore other errors for loaders that fail (e.g., browser not installed, database locked)
+            error_type = type(e).__name__
+            if error_type not in ['OperationalError', 'DatabaseError', 'FileNotFoundError']:
+                # Only log non-database errors (database errors are expected if browser is open)
+                print(f"[LinkedIn Local Check] Error loading cookies from browser: {error_type}: {e}")
             continue
     
     return cj
