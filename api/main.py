@@ -21,6 +21,14 @@ load_dotenv()
 
 app = FastAPI(title="LinkedIn Lead Capture API")
 
+# Serve Chrome extension files
+try:
+    chrome_ext_path = Path(__file__).parent.parent / "chrome-extension"
+    if chrome_ext_path.exists():
+        app.mount("/chrome-extension", StaticFiles(directory=str(chrome_ext_path)), name="chrome-extension")
+except Exception as e:
+    print(f"[API] Note: Could not mount chrome-extension static files: {e}")
+
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
@@ -202,6 +210,14 @@ _linkedin_auth_cache = {
     "ttl": 300  # Cache for 5 minutes (300 seconds)
 }
 
+# Store for bookmarklet status (shared across domains)
+_bookmarklet_status_store = {
+    "logged_in": None,
+    "user_name": None,
+    "timestamp": 0,
+    "ttl": 300  # Valid for 5 minutes
+}
+
 @app.get("/api/linkedin-auth-status")
 async def check_linkedin_auth_status():
     """Check LinkedIn authentication status using Firefox profile (with caching)"""
@@ -259,6 +275,79 @@ async def check_linkedin_login_status():
     """Check LinkedIn login status (alias for linkedin-auth-status)"""
     # Use the same function as linkedin-auth-status
     return await check_linkedin_auth_status()
+
+
+class BookmarkletStatusRequest(BaseModel):
+    logged_in: bool
+    user_name: Optional[str] = None
+
+
+@app.post("/api/bookmarklet-status")
+async def save_bookmarklet_status(request: BookmarkletStatusRequest):
+    """Save bookmarklet status from LinkedIn page"""
+    import time
+    print(f"[API] Received bookmarklet status: logged_in={request.logged_in}, user_name={request.user_name}")
+    _bookmarklet_status_store["logged_in"] = request.logged_in
+    _bookmarklet_status_store["user_name"] = request.user_name
+    _bookmarklet_status_store["timestamp"] = time.time()
+    print(f"[API] Status saved successfully. Store: {_bookmarklet_status_store}")
+    return {
+        "status": "success",
+        "message": "Status saved",
+        "logged_in": request.logged_in,
+        "user_name": request.user_name
+    }
+
+
+@app.get("/api/bookmarklet-status")
+async def get_bookmarklet_status(logged_in: Optional[bool] = None, user_name: Optional[str] = None):
+    """Get or set bookmarklet status (GET can also set via query params to avoid CORS issues)"""
+    import time
+    current_time = time.time()
+    
+    # If query parameters are provided, save the status (for bookmarklet)
+    if logged_in is not None:
+        print(f"[API] GET bookmarklet-status: Saving status via GET - logged_in={logged_in}, user_name={user_name}")
+        _bookmarklet_status_store["logged_in"] = logged_in
+        _bookmarklet_status_store["user_name"] = user_name
+        _bookmarklet_status_store["timestamp"] = current_time
+        print(f"[API] Status saved successfully. Store: {_bookmarklet_status_store}")
+        return {
+            "status": "success",
+            "message": "Status saved",
+            "logged_in": logged_in,
+            "user_name": user_name
+        }
+    
+    # Otherwise, retrieve the status
+    # Check if status has ever been set (timestamp > 0)
+    if _bookmarklet_status_store["timestamp"] == 0:
+        print(f"[API] GET bookmarklet-status: Status not set (timestamp=0)")
+        return {
+            "logged_in": None,
+            "user_name": None,
+            "status": "not_set",
+            "message": "Status not set - click bookmarklet on LinkedIn"
+        }
+    
+    age = current_time - _bookmarklet_status_store["timestamp"]
+    print(f"[API] GET bookmarklet-status: age={int(age)}s, logged_in={_bookmarklet_status_store['logged_in']}")
+    
+    if age > _bookmarklet_status_store["ttl"]:
+        return {
+            "logged_in": None,
+            "user_name": None,
+            "status": "expired",
+            "message": "Status expired - click bookmarklet again on LinkedIn"
+        }
+    
+    return {
+        "logged_in": _bookmarklet_status_store["logged_in"],
+        "user_name": _bookmarklet_status_store["user_name"],
+        "status": "success",
+        "age": int(age),
+        "source": "bookmarklet"
+    }
 
 
 @app.post("/api/linkedin-auth-status/clear-cache")

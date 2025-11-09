@@ -49,10 +49,24 @@
 										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">New Capture</h1>
 										<p class="text-base text-link dark:text-darklink">Create a new LinkedIn lead capture run</p>
 									</div>
-									<!-- LinkedIn Login Status Indicator -->
-									<div id="linkedin-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark transition-shadow" title="Firefox LinkedIn status checker - automatically checks on page load">
-										<div id="linkedin-status-icon" class="w-3 h-3 rounded-full bg-gray-400 animate-pulse"></div>
-										<span id="linkedin-status-text" class="text-sm text-link dark:text-darklink">Checking status...</span>
+									<div class="flex flex-col items-end gap-2">
+										<!-- LinkedIn Status Indicator -->
+										<div id="linkedin-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark transition-shadow">
+											<div id="linkedin-status-icon" class="w-3 h-3 rounded-full bg-gray-400"></div>
+											<span id="linkedin-status-text" class="text-sm text-link dark:text-darklink">Click bookmarklet on LinkedIn</span>
+										</div>
+										<!-- Chrome Extension Installer -->
+										<a href="javascript:void(0)" 
+										   id="extension-installer" 
+										   draggable="true"
+										   class="flex items-center gap-2 px-4 py-2 rounded-md border-2 border-dashed border-primary bg-lightprimary dark:bg-darkprimary text-primary hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-all cursor-move"
+										   title="Drag this to your bookmarks bar to install the LinkedIn Checker extension">
+											<i class="ti ti-brand-chrome text-lg"></i>
+											<span class="text-sm font-medium">Drag to Install Extension</span>
+										</a>
+										<p class="text-xs text-link dark:text-darklink text-right max-w-[200px]">
+											Drag to bookmarks bar, then click on LinkedIn
+										</p>
 									</div>
 								</div>
 							</div>
@@ -1400,17 +1414,123 @@
 				}
 			}
 			
+			// Check for bookmarklet status from API
+			async function checkBookmarkletStatus() {
+				try {
+					const result = await apiCall('/api/bookmarklet-status', 'GET', null, 5000);
+					if (result && result.status === 'success' && result.logged_in !== null) {
+						linkedinLoginStatus = result.logged_in;
+						updateBookmarkletStatusUI({
+							loggedIn: result.logged_in,
+							userName: result.user_name
+						});
+						return true;
+					} else if (result && (result.status === 'expired' || result.status === 'not_set')) {
+						// Status expired or not set, show default
+						const statusIndicator = document.getElementById('linkedin-status-indicator');
+						const statusIcon = document.getElementById('linkedin-status-icon');
+						const statusText = document.getElementById('linkedin-status-text');
+						if (statusIndicator && statusIcon && statusText) {
+							statusIcon.className = 'w-3 h-3 rounded-full bg-gray-400';
+							statusText.textContent = result.status === 'not_set' 
+								? 'Click bookmarklet on LinkedIn' 
+								: 'Status expired - click bookmarklet again';
+							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark';
+							statusText.className = 'text-sm text-link dark:text-darklink';
+						}
+					}
+				} catch (e) {
+					console.log('Error reading bookmarklet status:', e);
+				}
+				return false;
+			}
+
+			// Update UI with bookmarklet status
+			function updateBookmarkletStatusUI(status) {
+				const statusIndicator = document.getElementById('linkedin-status-indicator');
+				const statusIcon = document.getElementById('linkedin-status-icon');
+				const statusText = document.getElementById('linkedin-status-text');
+				
+				if (!statusIndicator || !statusIcon || !statusText) return;
+				
+				if (status.loggedIn) {
+					statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
+					const displayText = status.userName 
+						? `LinkedIn: ${status.userName}` 
+						: 'LinkedIn: Logged In';
+					statusText.textContent = displayText;
+					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+					statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
+					statusIndicator.title = status.userName 
+						? `Logged in as ${status.userName} (Bookmarklet)` 
+						: 'LinkedIn: Logged In (Bookmarklet)';
+				} else {
+					statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
+					statusText.textContent = 'LinkedIn: Not Logged In';
+					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+					statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
+					statusIndicator.title = 'LinkedIn: Not Logged In (Bookmarklet)';
+				}
+			}
+			
+			// Setup Chrome Extension Installer
+			function setupExtensionInstaller() {
+				const installer = document.getElementById('extension-installer');
+				if (!installer) return;
+				
+				// Create inline bookmarklet code (no external script loading needed)
+				// This avoids CORS issues and works immediately
+				// Improved LinkedIn login detection with multiple selectors
+				// Accurate LinkedIn detection - checks for sign-in button first, then requires multiple logged-in indicators
+				const bookmarkletCode = `javascript:(function(){var d=document;var e=d.getElementById('siftin-status-popup');if(e)e.remove();if(!d.location.hostname.includes('linkedin.com')){alert('Please navigate to LinkedIn first');d.location.href='https://www.linkedin.com';return;}var p=d.createElement('div');p.id='siftin-status-popup';p.style.cssText='position:fixed!important;top:20px!important;right:20px!important;background:white!important;border:2px solid #0077b5!important;border-radius:8px!important;padding:20px!important;box-shadow:0 4px 12px rgba(0,0,0,0.15)!important;z-index:999999!important;max-width:300px!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;';var loggedIn=false;var name='';var bodyText=d.body.textContent||'';var hasSignIn=!!(/Sign\s+in/i.test(bodyText));var hasJoinNow=!!(/Join\s+now/i.test(bodyText));if(hasSignIn||hasJoinNow){loggedIn=false;}else{var nav=d.querySelector('nav');var hasNav=!!nav;if(!hasNav){loggedIn=false;}else{var hasMessaging=!!d.querySelector('a[href*="/messaging/"]');var hasNotifications=!!d.querySelector('a[href*="/notifications/"]');var hasJobs=!!d.querySelector('a[href*="/jobs/"]');var hasMyNetwork=!!d.querySelector('a[href*="/mynetwork/"]');var hasStartPost=!!(d.querySelector('[placeholder*="Start a post"],textarea[placeholder*="Start a post"]')||bodyText.includes('Start a post'));var hasProfileCard=!!d.querySelector('.profile-card,.pv-profile-card');var hasFeed=!!d.querySelector('.feed-container,.scaffold-finite-scroll__content');var hasMeMenu=!!(bodyText.includes('Me')&&!hasSignIn);var indicators=0;if(hasMessaging)indicators++;if(hasNotifications)indicators++;if(hasJobs)indicators++;if(hasMyNetwork)indicators++;if(hasStartPost)indicators++;if(hasProfileCard)indicators++;if(hasFeed)indicators++;if(hasMeMenu)indicators++;loggedIn=indicators>=3;}}if(loggedIn){var nameSelectors=['.profile-card h1','.pv-profile-card h1','[data-control-name="nav.settings"]'];for(var i=0;i<nameSelectors.length;i++){var el=d.querySelector(nameSelectors[i]);if(el){var txt=el.textContent.trim();if(txt&&txt.length>2&&txt.length<50&&txt!=='Me'){name=txt;break;}}}}var statusData={logged_in:loggedIn,user_name:name};try{var apiUrl='http://localhost:8000/api/bookmarklet-status?logged_in='+encodeURIComponent(loggedIn)+(name?'&user_name='+encodeURIComponent(name):'');var img=new Image();img.onload=function(){console.log('Status saved to API via GET');};img.onerror=function(){console.log('Could not save status - trying alternative method');var xhr=new XMLHttpRequest();xhr.open('GET',apiUrl,true);xhr.onload=function(){if(xhr.status===200){var data=JSON.parse(xhr.responseText);console.log('Status saved to API:',data);}else{console.log('API error:',xhr.status);}};xhr.onerror=function(){console.log('Network error - API may be blocked by LinkedIn');};xhr.send();};img.src=apiUrl;}catch(err){console.log('Error:',err);}var s=loggedIn?'Logged In':'Not Logged In';var c=loggedIn?'#388e3c':'#d32f2f';var b=loggedIn?'#e8f5e9':'#ffebee';p.innerHTML='<div style="text-align:center"><h3 style="margin:0 0 10px 0;color:#0077b5">LinkedIn Status</h3><div style="padding:10px;border-radius:4px;background:'+b+'"><div style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+c+';margin-right:8px"></div><span style="color:'+c+';font-weight:bold">'+s+'</span>'+(name?'<div style="margin-top:5px;font-size:12px;color:#666">as '+name+'</div>':'')+'</div><div style="margin-top:8px;font-size:11px;color:#666">Status saved to New Capture page</div><button id="siftin-close-btn" style="margin-top:10px;padding:8px 16px;background:#0077b5;color:white;border:none;border-radius:4px;cursor:pointer">Close</button></div>';d.body.appendChild(p);var closeBtn=d.getElementById('siftin-close-btn');if(closeBtn){closeBtn.onclick=function(){p.remove();};}})();`;
+				
+				// Set href for dragging
+				installer.href = bookmarkletCode;
+				
+				// Handle drag start
+				installer.addEventListener('dragstart', function(e) {
+					e.dataTransfer.setData('text/plain', bookmarkletCode);
+					e.dataTransfer.setData('text/uri-list', bookmarkletCode);
+					e.dataTransfer.effectAllowed = 'copy';
+					
+					// Visual feedback
+					installer.style.opacity = '0.5';
+				});
+				
+				installer.addEventListener('dragend', function() {
+					installer.style.opacity = '1';
+				});
+				
+				// Handle click - show instructions
+				installer.addEventListener('click', function(e) {
+					e.preventDefault();
+					alert('To install:\n\n1. Drag this button to your browser\'s bookmarks bar\n2. Go to LinkedIn (linkedin.com)\n3. Click the bookmark to check your login status\n\nOr visit: ' + API_BASE_URL + '/chrome-extension/install.html');
+				});
+			}
+
 			// Initialize when DOM is ready
 			if (document.readyState === 'loading') {
 				document.addEventListener('DOMContentLoaded', () => {
 					updateStepIndicator(1);
+					// Setup extension installer
+					setupExtensionInstaller();
+					// Check for bookmarklet status first
+					checkBookmarkletStatus();
 					// Check LinkedIn status on page load and log to console
-					checkLinkedInStatusOnLoad();
+					// checkLinkedInStatusOnLoad(); // Disabled - using Chrome extension instead
+					// Poll for bookmarklet status updates every 2 seconds
+					setInterval(checkBookmarkletStatus, 2000);
 				});
 			} else {
 				updateStepIndicator(1);
+				// Setup extension installer
+				setupExtensionInstaller();
+				// Check for bookmarklet status first
+				checkBookmarkletStatus();
 				// Check LinkedIn status on page load and log to console
-				checkLinkedInStatusOnLoad();
+				// checkLinkedInStatusOnLoad(); // Disabled - using Chrome extension instead
+				// Poll for bookmarklet status updates every 2 seconds
+				setInterval(checkBookmarkletStatus, 2000);
 			}
 		</script>
 	</body>
