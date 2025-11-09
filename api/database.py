@@ -34,9 +34,22 @@ def init_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             total_leads INTEGER DEFAULT 0,
-            selected_leads INTEGER DEFAULT 0
+            selected_leads INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'success',
+            error_message TEXT
         )
     """)
+    
+    # Add status and error_message columns if they don't exist (migration for existing databases)
+    try:
+        cursor.execute("ALTER TABLE runs ADD COLUMN status TEXT DEFAULT 'success'")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute("ALTER TABLE runs ADD COLUMN error_message TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Create run_leads table to store all leads for each run
     cursor.execute("""
@@ -81,7 +94,9 @@ def create_run(
     linkedin_url: str,
     ai_criteria: str,
     leads: List[Dict],
-    selected_lead_ids: List[str]
+    selected_lead_ids: List[str],
+    status: str = 'success',
+    error_message: Optional[str] = None
 ) -> int:
     """
     Create a new run and save all leads
@@ -92,6 +107,8 @@ def create_run(
         ai_criteria: AI criteria used
         leads: List of all lead dictionaries
         selected_lead_ids: List of selected lead IDs
+        status: Status of the run ('success', 'failed', 'partial')
+        error_message: Error message if run failed
     
     Returns:
         The ID of the created run
@@ -102,39 +119,40 @@ def create_run(
     try:
         # Insert run
         cursor.execute("""
-            INSERT INTO runs (run_label, linkedin_url, ai_criteria, total_leads, selected_leads)
-            VALUES (?, ?, ?, ?, ?)
-        """, (run_label, linkedin_url, ai_criteria, len(leads), len(selected_lead_ids)))
+            INSERT INTO runs (run_label, linkedin_url, ai_criteria, total_leads, selected_leads, status, error_message)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (run_label, linkedin_url, ai_criteria, len(leads), len(selected_lead_ids), status, error_message))
         
         run_id = cursor.lastrowid
         
-        # Insert all leads
-        for lead in leads:
-            is_selected = 1 if lead.get('id') in selected_lead_ids else 0
-            
-            cursor.execute("""
-                INSERT INTO run_leads (
-                    run_id, lead_id, name, title, company, location,
-                    match_score, description, linkedin_url, email,
-                    profile_image, is_selected
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                run_id,
-                lead.get('id', ''),
-                lead.get('name', ''),
-                lead.get('title', ''),
-                lead.get('company', ''),
-                lead.get('location', ''),
-                lead.get('match_score', 0),
-                lead.get('description', ''),
-                lead.get('linkedin_url', ''),
-                lead.get('email'),
-                lead.get('profile_image'),
-                is_selected
-            ))
+        # Insert all leads (only if there are leads)
+        if leads:
+            for lead in leads:
+                is_selected = 1 if lead.get('id') in selected_lead_ids else 0
+                
+                cursor.execute("""
+                    INSERT INTO run_leads (
+                        run_id, lead_id, name, title, company, location,
+                        match_score, description, linkedin_url, email,
+                        profile_image, is_selected
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    run_id,
+                    lead.get('id', ''),
+                    lead.get('name', ''),
+                    lead.get('title', ''),
+                    lead.get('company', ''),
+                    lead.get('location', ''),
+                    lead.get('match_score', 0),
+                    lead.get('description', ''),
+                    lead.get('linkedin_url', ''),
+                    lead.get('email'),
+                    lead.get('profile_image'),
+                    is_selected
+                ))
         
         conn.commit()
-        print(f"[Database] Created run {run_id} with {len(leads)} leads ({len(selected_lead_ids)} selected)")
+        print(f"[Database] Created run {run_id} with status '{status}' - {len(leads)} leads ({len(selected_lead_ids)} selected)")
         return run_id
         
     except Exception as e:
@@ -142,6 +160,35 @@ def create_run(
         raise e
     finally:
         conn.close()
+
+
+def create_failed_run(
+    run_label: str,
+    linkedin_url: str,
+    ai_criteria: str,
+    error_message: str
+) -> int:
+    """
+    Create a failed run record (no leads)
+    
+    Args:
+        run_label: Label for the run
+        linkedin_url: LinkedIn search URL
+        ai_criteria: AI criteria used
+        error_message: Error message describing the failure
+    
+    Returns:
+        The ID of the created run
+    """
+    return create_run(
+        run_label=run_label,
+        linkedin_url=linkedin_url,
+        ai_criteria=ai_criteria,
+        leads=[],
+        selected_lead_ids=[],
+        status='failed',
+        error_message=error_message
+    )
 
 
 def get_run(run_id: int) -> Optional[Dict]:
@@ -216,6 +263,50 @@ def get_run_leads(run_id: int, selected_only: bool = False) -> List[Dict]:
     leads = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return leads
+
+
+def update_run_selections(run_id: int, selected_lead_ids: List[str]) -> bool:
+    """Update the selected leads for a run"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # First, unselect all leads for this run
+        cursor.execute("""
+            UPDATE run_leads 
+            SET is_selected = 0 
+            WHERE run_id = ?
+        """, (run_id,))
+        
+        # Then, mark the selected leads
+        if selected_lead_ids:
+            placeholders = ','.join(['?'] * len(selected_lead_ids))
+            cursor.execute(f"""
+                UPDATE run_leads 
+                SET is_selected = 1 
+                WHERE run_id = ? AND lead_id IN ({placeholders})
+            """, (run_id, *selected_lead_ids))
+        
+        # Update the selected_leads count in the runs table
+        cursor.execute("""
+            UPDATE runs 
+            SET selected_leads = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (len(selected_lead_ids), run_id))
+        
+        conn.commit()
+        updated = cursor.rowcount > 0
+        conn.close()
+        
+        if updated:
+            print(f"[Database] Updated run {run_id} with {len(selected_lead_ids)} selected leads")
+        
+        return updated
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise e
 
 
 def delete_run(run_id: int) -> bool:

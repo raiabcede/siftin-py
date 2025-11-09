@@ -220,7 +220,14 @@
 												<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightprimary dark:bg-darkprimary text-primary">
 													ID: ${run.id}
 												</span>
+												${getStatusBadge(run.status)}
 											</div>
+											${run.error_message ? `
+											<div class="mb-3 p-3 rounded-md bg-lightdanger dark:bg-darkdanger border border-danger">
+												<p class="text-sm text-danger font-semibold mb-1">Error:</p>
+												<p class="text-sm text-danger">${escapeHtml(run.error_message)}</p>
+											</div>
+											` : ''}
 											
 											<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 												<div>
@@ -252,9 +259,11 @@
 											<button onclick="viewRun(${run.id})" class="btn btn-outline btn-sm flex items-center">
 												<i class="ti ti-eye mr-2"></i> View
 											</button>
+											${run.status === 'success' && run.total_leads > 0 ? `
 											<button onclick="exportRun(${run.id})" class="btn btn-primary btn-sm flex items-center">
 												<i class="ti ti-download mr-2"></i> Export
 											</button>
+											` : ''}
 											<button onclick="deleteRun(${run.id})" class="btn btn-outline btn-sm text-danger hover:bg-lightdanger dark:hover:bg-darkdanger flex items-center">
 												<i class="ti ti-trash mr-2"></i> Delete
 											</button>
@@ -330,6 +339,36 @@ Selected Leads: ${run.selected_leads}
 			// Refresh runs
 			function refreshRuns() {
 				loadRuns();
+			}
+
+			// Get status badge HTML
+			function getStatusBadge(status) {
+				if (!status) status = 'success';
+				const statusLower = status.toLowerCase();
+				
+				let bgClass = 'bg-lightprimary dark:bg-darkprimary';
+				let textClass = 'text-primary';
+				let icon = 'ti-check';
+				let label = 'Success';
+				
+				if (statusLower === 'failed') {
+					bgClass = 'bg-lightdanger dark:bg-darkdanger';
+					textClass = 'text-danger';
+					icon = 'ti-x';
+					label = 'Failed';
+				} else if (statusLower === 'partial') {
+					bgClass = 'bg-lightwarning dark:bg-darkwarning';
+					textClass = 'text-warning';
+					icon = 'ti-alert-triangle';
+					label = 'Partial';
+				}
+				
+				return `
+					<span class="px-2 py-1 text-xs font-medium rounded-md ${bgClass} ${textClass} flex items-center gap-1">
+						<i class="ti ${icon}"></i>
+						${label}
+					</span>
+				`;
 			}
 
 			// Escape HTML to prevent XSS

@@ -121,6 +121,9 @@ class SaveToLibraryRequest(BaseModel):
     run_label: str
     selected_lead_ids: List[str]
     leads: Optional[List[Lead]] = None  # Full lead data for storage
+    status: Optional[str] = 'success'  # 'success', 'failed', 'partial'
+    error_message: Optional[str] = None
+    run_id: Optional[int] = None  # If provided, update existing run instead of creating new one
 
 
 class SaveResponse(BaseModel):
@@ -570,7 +573,9 @@ async def save_to_library(request: SaveToLibraryRequest):
             linkedin_url=request.linkedin_url,
             ai_criteria=request.ai_criteria,
             leads=leads_data,
-            selected_lead_ids=request.selected_lead_ids
+            selected_lead_ids=request.selected_lead_ids,
+            status=request.status or 'success',
+            error_message=request.error_message
         )
         
         print(f"[API] ✓ Saved run {run_id} to library")
@@ -591,10 +596,24 @@ async def save_to_library(request: SaveToLibraryRequest):
 
 @app.post("/api/capture/save-run", response_model=SaveResponse)
 async def save_run(request: SaveToLibraryRequest):
-    """Save a capture run to database"""
+    """Save a capture run to database, or update existing run if run_id is provided"""
     try:
-        from database import create_run
+        from database import create_run, update_run_selections
         
+        # If run_id is provided, update existing run's selections
+        if request.run_id:
+            updated = update_run_selections(request.run_id, request.selected_lead_ids)
+            if not updated:
+                raise HTTPException(status_code=404, detail=f"Run {request.run_id} not found")
+            
+            print(f"[API] ✓ Updated run {request.run_id} with {len(request.selected_lead_ids)} selected leads")
+            
+            return SaveResponse(
+                success=True,
+                message=f"Successfully updated run {request.run_id} with {len(request.selected_lead_ids)} selected leads"
+            )
+        
+        # Otherwise, create new run
         # Check if leads data is provided
         if not request.leads:
             raise HTTPException(
@@ -611,7 +630,9 @@ async def save_run(request: SaveToLibraryRequest):
             linkedin_url=request.linkedin_url,
             ai_criteria=request.ai_criteria,
             leads=leads_data,
-            selected_lead_ids=request.selected_lead_ids
+            selected_lead_ids=request.selected_lead_ids,
+            status=request.status or 'success',
+            error_message=request.error_message
         )
         
         print(f"[API] ✓ Saved run {run_id} to database")
@@ -749,6 +770,8 @@ class RunSummary(BaseModel):
     created_at: str
     total_leads: int
     selected_leads: int
+    status: str = 'success'
+    error_message: Optional[str] = None
 
 
 class RunDetail(BaseModel):
@@ -760,6 +783,8 @@ class RunDetail(BaseModel):
     updated_at: str
     total_leads: int
     selected_leads: int
+    status: str = 'success'
+    error_message: Optional[str] = None
     leads: List[Lead]
 
 
@@ -785,7 +810,9 @@ async def get_runs(limit: int = 100, offset: int = 0):
                 ai_criteria=run['ai_criteria'],
                 created_at=run['created_at'],
                 total_leads=run.get('total_leads_count', run.get('total_leads', 0)),
-                selected_leads=run.get('selected_leads_count', run.get('selected_leads', 0))
+                selected_leads=run.get('selected_leads_count', run.get('selected_leads', 0)),
+                status=run.get('status', 'success'),
+                error_message=run.get('error_message')
             ))
         
         return RunsListResponse(
@@ -836,6 +863,8 @@ async def get_run_detail(run_id: int):
             updated_at=run.get('updated_at', run['created_at']),
             total_leads=run.get('total_leads', len(leads)),
             selected_leads=run.get('selected_leads', 0),
+            status=run.get('status', 'success'),
+            error_message=run.get('error_message'),
             leads=leads
         )
     except HTTPException:
@@ -925,6 +954,41 @@ async def export_run(run_id: int, selected_only: bool = True):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error exporting run: {error_msg}")
+
+
+@app.post("/api/capture/runs/failed")
+async def create_failed_run_endpoint(request: SaveToLibraryRequest):
+    """Create a failed run record"""
+    try:
+        from database import create_failed_run
+        
+        if not request.error_message:
+            raise HTTPException(
+                status_code=400,
+                detail="Error message is required for failed runs"
+            )
+        
+        run_id = create_failed_run(
+            run_label=request.run_label,
+            linkedin_url=request.linkedin_url,
+            ai_criteria=request.ai_criteria,
+            error_message=request.error_message
+        )
+        
+        print(f"[API] ✓ Created failed run {run_id}")
+        
+        return SaveResponse(
+            success=True,
+            message=f"Failed run '{request.run_label}' (ID: {run_id}) recorded with error: {request.error_message}"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] ✗ Error creating failed run: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error creating failed run: {error_msg}")
 
 
 @app.delete("/api/capture/runs/{run_id}")

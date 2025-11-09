@@ -581,12 +581,18 @@
 						if (foundLeads.length === 0) {
 							generateLeadsList(); // This will show "No leads found"
 							document.getElementById('mock-data-notice')?.classList.add('hidden');
+							
+							// Save failed run if no leads found
+							await autoSaveRun('failed', 'No leads found from the LinkedIn search');
 						} else {
 							// Update count immediately
 							updateLeadCount();
 							generateLeadsList();
 							// Hide mock data notice since these are real links
 							document.getElementById('mock-data-notice')?.classList.add('hidden');
+							
+							// Automatically save the run after leads are found
+							await autoSaveRun('success', null);
 						}
 						
 						// Restore button
@@ -597,6 +603,9 @@
 					} catch (error) {
 						console.error('[Step 3] Error:', error);
 						showLoading('leads-list', false);
+						
+						// Save failed run with error message
+						await autoSaveRun('failed', error.message || 'Error extracting profile links');
 						
 						// Restore button state immediately (previewBtn already declared above)
 						if (previewBtn) {
@@ -884,14 +893,29 @@
 						return;
 					}
 					
-					// Save the run with all leads
-					const saveResult = await apiCall('/api/capture/save-run', 'POST', {
-						linkedin_url: linkedinUrl,
-						ai_criteria: aiCriteria,
-						run_label: runLabel,
-						selected_lead_ids: selectedLeads,
-						leads: foundLeads  // Send all leads to database
-					});
+					// Update the existing run with selected leads (if auto-save worked)
+					// Otherwise create a new run
+					let saveResult;
+					if (savedRunId) {
+						// Update existing run with selections
+						saveResult = await apiCall('/api/capture/save-run', 'POST', {
+							linkedin_url: linkedinUrl,
+							ai_criteria: aiCriteria,
+							run_label: runLabel,
+							selected_lead_ids: selectedLeads,
+							leads: [], // Not needed for update
+							run_id: parseInt(savedRunId)  // Update existing run
+						});
+					} else {
+						// Create new run if auto-save didn't work
+						saveResult = await apiCall('/api/capture/save-run', 'POST', {
+							linkedin_url: linkedinUrl,
+							ai_criteria: aiCriteria,
+							run_label: runLabel,
+							selected_lead_ids: selectedLeads,
+							leads: selectedLeadData
+						});
+					}
 					
 					// Export the selected leads with full lead data
 					const exportResult = await apiCall('/api/capture/export', 'POST', {
@@ -911,6 +935,78 @@
 				} catch (error) {
 					showError(error.message);
 				}
+			}
+
+			// Auto-save run after step 3
+			let savedRunId = null; // Store the run ID after auto-save
+			
+			async function autoSaveRun(status, errorMessage) {
+				try {
+					// Generate automatic run label
+					const runLabel = `Run - ${new Date().toLocaleString()}`;
+					
+					// Save the run with all found leads (selected_lead_ids will be empty initially)
+					const saveResult = await apiCall('/api/capture/save-run', 'POST', {
+						linkedin_url: linkedinUrl,
+						ai_criteria: aiCriteria,
+						run_label: runLabel,
+						selected_lead_ids: [], // No leads selected yet - user will select in step 3
+						leads: foundLeads, // Save all found leads
+						status: status,
+						error_message: errorMessage
+					});
+					
+					// Extract run ID from message if possible, or store success
+					savedRunId = saveResult.message.match(/ID: (\d+)/)?.[1] || null;
+					
+					console.log('[Auto-Save] Run saved automatically:', saveResult.message);
+					
+					// Show a subtle notification that run was saved
+					if (status === 'success') {
+						showAutoSaveNotification('Run saved automatically');
+					}
+					
+					return savedRunId;
+				} catch (error) {
+					console.error('[Auto-Save] Error saving run:', error);
+					// Don't show error to user - this is background operation
+					// We'll try to save again in step 4 if needed
+					return null;
+				}
+			}
+			
+			// Show auto-save notification
+			function showAutoSaveNotification(message) {
+				// Create or update notification element
+				let notification = document.getElementById('auto-save-notification');
+				if (!notification) {
+					notification = document.createElement('div');
+					notification.id = 'auto-save-notification';
+					notification.className = 'fixed top-20 right-4 z-50 transition-all duration-300';
+					document.body.appendChild(notification);
+				}
+				
+				notification.innerHTML = `
+					<div class="bg-lightprimary dark:bg-darkprimary border border-primary rounded-md p-3 shadow-lg flex items-center gap-2">
+						<i class="ti ti-check text-primary"></i>
+						<span class="text-sm text-primary font-medium">${message}</span>
+					</div>
+				`;
+				
+				// Show notification
+				notification.style.opacity = '1';
+				notification.style.transform = 'translateX(0)';
+				
+				// Hide after 3 seconds
+				setTimeout(() => {
+					notification.style.opacity = '0';
+					notification.style.transform = 'translateX(100%)';
+					setTimeout(() => {
+						if (notification.parentNode) {
+							notification.parentNode.removeChild(notification);
+						}
+					}, 300);
+				}, 3000);
 			}
 
 			// Check LinkedIn login status
