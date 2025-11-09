@@ -120,6 +120,7 @@ class SaveToLibraryRequest(BaseModel):
     ai_criteria: str
     run_label: str
     selected_lead_ids: List[str]
+    leads: Optional[List[Lead]] = None  # Full lead data for storage
 
 
 class SaveResponse(BaseModel):
@@ -549,32 +550,84 @@ async def find_leads(request: FindLeadsRequest):
 
 @app.post("/api/capture/save-to-library", response_model=SaveResponse)
 async def save_to_library(request: SaveToLibraryRequest):
-    """Save selected leads to library"""
+    """Save selected leads to library (same as save-run)"""
     try:
-        # TODO: Implement actual database storage
-        # For now, just return success
+        from database import create_run
+        
+        # Check if leads data is provided
+        if not request.leads:
+            raise HTTPException(
+                status_code=400,
+                detail="Lead data is required for saving. Please provide full lead objects in the 'leads' field."
+            )
+        
+        # Convert Lead models to dictionaries
+        leads_data = [lead.dict() for lead in request.leads]
+        
+        # Save to database (same as save-run)
+        run_id = create_run(
+            run_label=request.run_label,
+            linkedin_url=request.linkedin_url,
+            ai_criteria=request.ai_criteria,
+            leads=leads_data,
+            selected_lead_ids=request.selected_lead_ids
+        )
+        
+        print(f"[API] ✓ Saved run {run_id} to library")
         
         return SaveResponse(
             success=True,
-            message=f"Successfully saved {len(request.selected_lead_ids)} leads to library"
+            message=f"Successfully saved {len(leads_data)} leads ({len(request.selected_lead_ids)} selected) to library (Run ID: {run_id})"
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving to library: {str(e)}")
+        error_msg = str(e)
+        print(f"[API] ✗ Error saving to library: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error saving to library: {error_msg}")
 
 
 @app.post("/api/capture/save-run", response_model=SaveResponse)
 async def save_run(request: SaveToLibraryRequest):
-    """Save a capture run"""
+    """Save a capture run to database"""
     try:
-        # TODO: Implement actual database storage
-        # For now, just return success
+        from database import create_run
+        
+        # Check if leads data is provided
+        if not request.leads:
+            raise HTTPException(
+                status_code=400,
+                detail="Lead data is required for saving. Please provide full lead objects in the 'leads' field."
+            )
+        
+        # Convert Lead models to dictionaries
+        leads_data = [lead.dict() for lead in request.leads]
+        
+        # Save to database
+        run_id = create_run(
+            run_label=request.run_label,
+            linkedin_url=request.linkedin_url,
+            ai_criteria=request.ai_criteria,
+            leads=leads_data,
+            selected_lead_ids=request.selected_lead_ids
+        )
+        
+        print(f"[API] ✓ Saved run {run_id} to database")
         
         return SaveResponse(
             success=True,
-            message=f"Successfully saved run '{request.run_label}' with {len(request.selected_lead_ids)} leads"
+            message=f"Successfully saved run '{request.run_label}' (ID: {run_id}) with {len(leads_data)} leads ({len(request.selected_lead_ids)} selected)"
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving run: {str(e)}")
+        error_msg = str(e)
+        print(f"[API] ✗ Error saving run: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error saving run: {error_msg}")
 
 
 @app.post("/api/capture/export", response_model=ExportResponse)
@@ -686,6 +739,215 @@ async def download_file(filename: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error downloading file: {str(e)}")
+
+
+class RunSummary(BaseModel):
+    id: int
+    run_label: str
+    linkedin_url: str
+    ai_criteria: Optional[str]
+    created_at: str
+    total_leads: int
+    selected_leads: int
+
+
+class RunDetail(BaseModel):
+    id: int
+    run_label: str
+    linkedin_url: str
+    ai_criteria: Optional[str]
+    created_at: str
+    updated_at: str
+    total_leads: int
+    selected_leads: int
+    leads: List[Lead]
+
+
+class RunsListResponse(BaseModel):
+    runs: List[RunSummary]
+    total: int
+
+
+@app.get("/api/capture/runs", response_model=RunsListResponse)
+async def get_runs(limit: int = 100, offset: int = 0):
+    """Get all saved runs"""
+    try:
+        from database import get_all_runs
+        
+        runs = get_all_runs(limit=limit, offset=offset)
+        
+        run_summaries = []
+        for run in runs:
+            run_summaries.append(RunSummary(
+                id=run['id'],
+                run_label=run['run_label'],
+                linkedin_url=run['linkedin_url'],
+                ai_criteria=run['ai_criteria'],
+                created_at=run['created_at'],
+                total_leads=run.get('total_leads_count', run.get('total_leads', 0)),
+                selected_leads=run.get('selected_leads_count', run.get('selected_leads', 0))
+            ))
+        
+        return RunsListResponse(
+            runs=run_summaries,
+            total=len(run_summaries)
+        )
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] ✗ Error getting runs: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Error getting runs: {error_msg}")
+
+
+@app.get("/api/capture/runs/{run_id}", response_model=RunDetail)
+async def get_run_detail(run_id: int):
+    """Get a specific run with all its leads"""
+    try:
+        from database import get_run
+        
+        run = get_run(run_id)
+        
+        if not run:
+            raise HTTPException(status_code=404, detail=f"Run with ID {run_id} not found")
+        
+        # Convert run_leads to Lead models
+        leads = []
+        for lead_data in run.get('leads', []):
+            leads.append(Lead(
+                id=lead_data['lead_id'],
+                name=lead_data['name'],
+                title=lead_data.get('title', ''),
+                company=lead_data.get('company', ''),
+                location=lead_data.get('location', ''),
+                match_score=lead_data.get('match_score', 0),
+                description=lead_data.get('description', ''),
+                linkedin_url=lead_data['linkedin_url'],
+                email=lead_data.get('email'),
+                profile_image=lead_data.get('profile_image'),
+                created_at=lead_data.get('created_at', ''),
+                is_mock=False
+            ))
+        
+        return RunDetail(
+            id=run['id'],
+            run_label=run['run_label'],
+            linkedin_url=run['linkedin_url'],
+            ai_criteria=run.get('ai_criteria'),
+            created_at=run['created_at'],
+            updated_at=run.get('updated_at', run['created_at']),
+            total_leads=run.get('total_leads', len(leads)),
+            selected_leads=run.get('selected_leads', 0),
+            leads=leads
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] ✗ Error getting run: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Error getting run: {error_msg}")
+
+
+@app.post("/api/capture/runs/{run_id}/export", response_model=ExportResponse)
+async def export_run(run_id: int, selected_only: bool = True):
+    """Export a saved run to CSV"""
+    try:
+        from database import get_run_leads
+        
+        # Get leads from database
+        leads_data = get_run_leads(run_id, selected_only=selected_only)
+        
+        if not leads_data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No leads found for run {run_id}"
+            )
+        
+        # Prepare output directory
+        output_dir = Path(__file__).parent / "output"
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get run info for filename
+        from database import get_run
+        run = get_run(run_id)
+        if not run:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+        
+        # Create timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_label = "".join(c for c in run['run_label'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        safe_label = safe_label.replace(' ', '_')[:50]
+        filename = f"run_{run_id}_{safe_label}_{timestamp}.csv"
+        csv_file_path = output_dir / filename
+        
+        # Write CSV file
+        with open(csv_file_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            
+            # Write header
+            writer.writerow([
+                'ID', 'Name', 'Title', 'Company', 'Location',
+                'Match Score', 'Description', 'LinkedIn URL',
+                'Email', 'Profile Image', 'Created At', 'Is Selected'
+            ])
+            
+            # Write lead data
+            for lead in leads_data:
+                writer.writerow([
+                    lead['lead_id'],
+                    lead['name'],
+                    lead.get('title', ''),
+                    lead.get('company', ''),
+                    lead.get('location', ''),
+                    lead.get('match_score', 0),
+                    lead.get('description', ''),
+                    lead['linkedin_url'],
+                    lead.get('email', ''),
+                    lead.get('profile_image', ''),
+                    lead.get('created_at', ''),
+                    'Yes' if lead.get('is_selected') else 'No'
+                ])
+        
+        # Generate download URL
+        download_url = f"/api/download/{filename}"
+        
+        print(f"[API] ✓ Exported run {run_id} ({len(leads_data)} leads) to {csv_file_path}")
+        
+        return ExportResponse(
+            success=True,
+            message=f"Successfully exported run {run_id} with {len(leads_data)} leads",
+            download_url=download_url
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] ✗ Export error: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error exporting run: {error_msg}")
+
+
+@app.delete("/api/capture/runs/{run_id}")
+async def delete_run(run_id: int):
+    """Delete a run and all its leads"""
+    try:
+        from database import delete_run
+        
+        deleted = delete_run(run_id)
+        
+        if not deleted:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+        
+        return {
+            "success": True,
+            "message": f"Run {run_id} deleted successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] ✗ Error deleting run: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Error deleting run: {error_msg}")
 
 
 @app.post("/api/capture/extract-names", response_model=ExtractNamesResponse)

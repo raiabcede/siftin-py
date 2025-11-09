@@ -839,11 +839,19 @@
 				const runLabel = runLabelInput?.value || `Run - ${new Date().toLocaleString()}`;
 				
 				try {
+					// Get full lead data for all found leads (not just selected)
+					// This way we save all leads but mark which ones are selected
+					if (foundLeads.length === 0) {
+						showError('No lead data found');
+						return;
+					}
+					
 					const result = await apiCall('/api/capture/save-to-library', 'POST', {
 						linkedin_url: linkedinUrl,
 						ai_criteria: aiCriteria,
 						run_label: runLabel,
-						selected_lead_ids: selectedLeads
+						selected_lead_ids: selectedLeads,
+						leads: foundLeads  // Send all leads
 					});
 					
 					alert(`Success! ${result.message}`);
@@ -862,7 +870,13 @@
 				const runLabel = runLabelInput?.value || `Run - ${new Date().toLocaleString()}`;
 				
 				try {
-					// Get full lead data for selected leads
+					// Get full lead data for all found leads (save all, mark selected)
+					if (foundLeads.length === 0) {
+						showError('No lead data found');
+						return;
+					}
+					
+					// Get selected lead data for export
 					const selectedLeadData = foundLeads.filter(lead => selectedLeads.includes(lead.id));
 					
 					if (selectedLeadData.length === 0) {
@@ -870,21 +884,22 @@
 						return;
 					}
 					
-					// Save the run
+					// Save the run with all leads
 					const saveResult = await apiCall('/api/capture/save-run', 'POST', {
 						linkedin_url: linkedinUrl,
 						ai_criteria: aiCriteria,
 						run_label: runLabel,
-						selected_lead_ids: selectedLeads
+						selected_lead_ids: selectedLeads,
+						leads: foundLeads  // Send all leads to database
 					});
 					
-					// Export the leads with full lead data
+					// Export the selected leads with full lead data
 					const exportResult = await apiCall('/api/capture/export', 'POST', {
 						linkedin_url: linkedinUrl,
 						ai_criteria: aiCriteria,
 						run_label: runLabel,
 						selected_lead_ids: selectedLeads,
-						leads: selectedLeadData  // Send full lead objects
+						leads: selectedLeadData  // Send only selected leads for export
 					});
 					
 					alert(`Success! ${saveResult.message}. ${exportResult.message}`);

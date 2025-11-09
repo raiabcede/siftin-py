@@ -45,7 +45,7 @@ const Routes = {
     {
       id: 'runs',
       page: 'runs',
-      path: '/index.html',
+      path: '/runs/',
       title: 'Runs',
       icon: 'ti-player-play',
       active: false
