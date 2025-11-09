@@ -862,6 +862,14 @@
 				const runLabel = runLabelInput?.value || `Run - ${new Date().toLocaleString()}`;
 				
 				try {
+					// Get full lead data for selected leads
+					const selectedLeadData = foundLeads.filter(lead => selectedLeads.includes(lead.id));
+					
+					if (selectedLeadData.length === 0) {
+						showError('No lead data found for selected leads');
+						return;
+					}
+					
 					// Save the run
 					const saveResult = await apiCall('/api/capture/save-run', 'POST', {
 						linkedin_url: linkedinUrl,
@@ -870,17 +878,18 @@
 						selected_lead_ids: selectedLeads
 					});
 					
-					// Export the leads
+					// Export the leads with full lead data
 					const exportResult = await apiCall('/api/capture/export', 'POST', {
 						linkedin_url: linkedinUrl,
 						ai_criteria: aiCriteria,
 						run_label: runLabel,
-						selected_lead_ids: selectedLeads
+						selected_lead_ids: selectedLeads,
+						leads: selectedLeadData  // Send full lead objects
 					});
 					
 					alert(`Success! ${saveResult.message}. ${exportResult.message}`);
 					
-					// In production, trigger download here
+					// Trigger download if download URL is provided
 					if (exportResult.download_url) {
 						window.location.href = `${API_BASE_URL}${exportResult.download_url}`;
 					}

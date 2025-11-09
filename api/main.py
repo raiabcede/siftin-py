@@ -3,11 +3,17 @@ FastAPI server for LinkedIn Lead Capture
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 import urllib.parse
 from dotenv import load_dotenv
 import os
+from pathlib import Path
+from datetime import datetime
+import csv
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -69,7 +75,7 @@ class ExtractNamesRequest(BaseModel):
     linkedin_url: str
     ai_criteria: Optional[str] = None
     max_results: Optional[int] = 50
-    max_pages: Optional[int] = 10
+    max_pages: Optional[int] = 1
 
 
 class PageNames(BaseModel):
@@ -88,10 +94,11 @@ class ExtractNamesResponse(BaseModel):
     errors: Optional[List[str]] = None
 
 
+# Extract links from LinkedIn search results max page
 class ExtractLinksRequest(BaseModel):
     linkedin_url: str
     max_results: Optional[int] = 50
-    max_pages: Optional[int] = 10
+    max_pages: Optional[int] = 1
 
 
 class PageLinks(BaseModel):
@@ -125,6 +132,7 @@ class ExportRequest(BaseModel):
     ai_criteria: str
     run_label: str
     selected_lead_ids: List[str]
+    leads: Optional[List[Lead]] = None  # Full lead data for export
 
 
 class ExportResponse(BaseModel):
@@ -571,18 +579,113 @@ async def save_run(request: SaveToLibraryRequest):
 
 @app.post("/api/capture/export", response_model=ExportResponse)
 async def export_leads(request: ExportRequest):
-    """Export selected leads"""
+    """Export selected leads to CSV file"""
     try:
-        # TODO: Implement actual export functionality (CSV, Excel, etc.)
-        # For now, just return success
+        # Check if leads data is provided
+        if not request.leads:
+            raise HTTPException(
+                status_code=400, 
+                detail="Lead data is required for export. Please provide full lead objects in the 'leads' field."
+            )
+        
+        # Filter leads to only include selected ones
+        selected_leads = [lead for lead in request.leads if lead.id in request.selected_lead_ids]
+        
+        if not selected_leads:
+            raise HTTPException(
+                status_code=400,
+                detail="No leads found matching the selected lead IDs"
+            )
+        
+        # Prepare output directory
+        output_dir = Path(__file__).parent / "output"
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_label = "".join(c for c in request.run_label if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        safe_label = safe_label.replace(' ', '_')[:50]  # Limit length
+        filename = f"leads_export_{safe_label}_{timestamp}.csv"
+        csv_file_path = output_dir / filename
+        
+        # Write CSV file
+        with open(csv_file_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            
+            # Write header
+            writer.writerow([
+                'ID', 'Name', 'Title', 'Company', 'Location', 
+                'Match Score', 'Description', 'LinkedIn URL', 
+                'Email', 'Profile Image', 'Created At'
+            ])
+            
+            # Write lead data
+            for lead in selected_leads:
+                writer.writerow([
+                    lead.id,
+                    lead.name,
+                    lead.title,
+                    lead.company,
+                    lead.location,
+                    lead.match_score,
+                    lead.description,
+                    lead.linkedin_url,
+                    lead.email or '',
+                    lead.profile_image or '',
+                    lead.created_at
+                ])
+        
+        # Generate download URL
+        download_url = f"/api/download/{filename}"
+        
+        print(f"[API] ✓ Exported {len(selected_leads)} leads to {csv_file_path}")
         
         return ExportResponse(
             success=True,
-            message=f"Successfully exported {len(request.selected_lead_ids)} leads",
-            download_url=None  # TODO: Generate actual download URL
+            message=f"Successfully exported {len(selected_leads)} leads",
+            download_url=download_url
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error exporting leads: {str(e)}")
+        error_msg = str(e)
+        print(f"[API] ✗ Export error: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error exporting leads: {error_msg}")
+
+
+@app.get("/api/download/{filename}")
+async def download_file(filename: str):
+    """Download exported CSV file"""
+    try:
+        output_dir = Path(__file__).parent / "output"
+        file_path = output_dir / filename
+        
+        # Security: Check that file exists and is in output directory
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Ensure the file is within the output directory (prevent directory traversal)
+        try:
+            file_path.resolve().relative_to(output_dir.resolve())
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Only allow CSV files
+        if not filename.endswith('.csv'):
+            raise HTTPException(status_code=403, detail="Only CSV files can be downloaded")
+        
+        return FileResponse(
+            path=str(file_path),
+            filename=filename,
+            media_type='text/csv'
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error downloading file: {str(e)}")
 
 
 @app.post("/api/capture/extract-names", response_model=ExtractNamesResponse)
