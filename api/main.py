@@ -14,6 +14,10 @@ from pathlib import Path
 from datetime import datetime
 import csv
 import json
+import subprocess
+import platform
+import socket
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -151,6 +155,13 @@ class ExportResponse(BaseModel):
     success: bool
     message: str
     download_url: Optional[str] = None
+
+
+class ChromeStartResponse(BaseModel):
+    success: bool
+    message: str
+    already_running: bool = False
+    port: int = 9222
 
 
 def extract_keywords_from_url(linkedin_url: str) -> str:
@@ -1387,6 +1398,463 @@ async def extract_links(request: ExtractLinksRequest):
             links_by_page=[],
             total=0,
             errors=[error_msg]
+        )
+
+
+@app.post("/api/capture/extract-links-chrome", response_model=ExtractLinksResponse)
+async def extract_links_chrome(request: ExtractLinksRequest):
+    """
+    Extract profile links/URLs from LinkedIn search results using Chrome with remote debugging.
+    This connects to an existing Chrome instance running with remote debugging enabled (port 9222).
+    """
+    links = []
+    links_by_page_data = []
+    errors = []
+    
+    print("=" * 60)
+    print("[API] ===== EXTRACT PROFILE LINKS REQUEST (CHROME) ======")
+    print(f"[API] LinkedIn URL: {request.linkedin_url}")
+    print(f"[API] Max results: {request.max_results}, Max pages: {request.max_pages}")
+    print("=" * 60)
+    
+    # Validate that the URL is a LinkedIn search results URL
+    if not request.linkedin_url or "/search/results/people" not in request.linkedin_url:
+        error_msg = f"Invalid LinkedIn URL. Please provide a LinkedIn search results URL like: https://www.linkedin.com/search/results/people/?keywords=..."
+        print(f"[API] ✗ {error_msg}")
+        return ExtractLinksResponse(
+            success=False,
+            links=[],
+            links_by_page=[],
+            total=0,
+            errors=[error_msg]
+        )
+    
+    try:
+        print("[API] Extracting profile links using Chrome remote debugging...")
+        from linkedin_scraper import extract_profile_links_chrome_async
+        
+        try:
+            result = await extract_profile_links_chrome_async(
+                search_url=request.linkedin_url,
+                max_results=request.max_results or 50,
+                max_pages=request.max_pages or 1,
+                return_by_page=True,  # Get links grouped by page
+                remote_debugging_port=9222  # Default Chrome remote debugging port
+            )
+            
+            # Handle both dict (with by_page) and list (legacy list responses)
+            if isinstance(result, dict):
+                links = result.get('links', [])
+                links_by_page_data = result.get('by_page', [])
+            else:
+                # Legacy: just a list of links
+                links = result if isinstance(result, list) else []
+                links_by_page_data = []
+            
+            # Convert to PageLinks models
+            links_by_page = []
+            for page_data in links_by_page_data:
+                if isinstance(page_data, dict):
+                    links_by_page.append(PageLinks(
+                        page=page_data.get('page', 0),
+                        links=page_data.get('links', []),
+                        count=page_data.get('count', 0)
+                    ))
+            
+            total = len(links)
+            
+            if total > 0:
+                print(f"[API] ✓ Successfully extracted {total} profile links using Chrome")
+            else:
+                print("[API] ⚠️ No profile links were extracted")
+                # Check if there were specific errors from the extraction
+                if not errors:
+                    errors.append("No profile links were extracted. Possible reasons:\n1. Not logged into LinkedIn in Chrome\n2. LinkedIn search page didn't load correctly\n3. No results found for the search query\n4. Chrome remote debugging connection issue\n\nCheck the server logs for more details.")
+            
+        except Exception as extract_error:
+            error_msg = str(extract_error)
+            print(f"[API] ✗ Extraction error: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            
+            # Provide more helpful error messages
+            if "login" in error_msg.lower() or "challenge" in error_msg.lower():
+                errors.append("LinkedIn login required. Please log into LinkedIn in the Chrome window with remote debugging enabled.")
+            elif "not on linkedin" in error_msg.lower() or "search results" in error_msg.lower():
+                errors.append(f"Navigation error: {error_msg}. Make sure you're logged into LinkedIn and the search URL is correct.")
+            elif "chromedriver" in error_msg.lower() or "connection" in error_msg.lower():
+                errors.append(f"Chrome connection error: {error_msg}. Make sure Chrome is running with remote debugging on port 9222.")
+            else:
+                errors.append(f"Extraction error: {error_msg}")
+            
+            links = []
+            links_by_page = []
+        
+        return ExtractLinksResponse(
+            success=len(links) > 0,
+            links=links if links else None,
+            links_by_page=links_by_page if links_by_page else None,
+            total=len(links),
+            errors=errors if errors else None
+        )
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[API] Error extracting links with Chrome: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        
+        return ExtractLinksResponse(
+            success=False,
+            links=[],
+            links_by_page=[],
+            total=0,
+            errors=[error_msg]
+        )
+
+
+def check_port_open(host: str, port: int) -> bool:
+    """Check if a port is open and listening."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        return result == 0
+    except:
+        return False
+
+
+def is_chrome_running() -> bool:
+    """Check if Chrome process is currently running."""
+    system = platform.system()
+    try:
+        if system == "Windows":
+            import subprocess
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq chrome.exe"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            return "chrome.exe" in result.stdout
+        elif system == "Darwin":  # macOS
+            import subprocess
+            result = subprocess.run(
+                ["pgrep", "-f", "Google Chrome"],
+                capture_output=True,
+                timeout=5
+            )
+            return result.returncode == 0
+        else:  # Linux
+            import subprocess
+            result = subprocess.run(
+                ["pgrep", "-f", "chrome"],
+                capture_output=True,
+                timeout=5
+            )
+            return result.returncode == 0
+    except:
+        # If we can't check, assume Chrome might be running
+        return True
+
+
+def find_chrome_executable() -> Optional[str]:
+    """Find Chrome executable path based on OS."""
+    system = platform.system()
+    
+    if system == "Windows":
+        paths = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), r"Google\Chrome\Application\chrome.exe")
+        ]
+        for path in paths:
+            if os.path.exists(path):
+                return path
+    elif system == "Darwin":  # macOS
+        path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        if os.path.exists(path):
+            return path
+    elif system == "Linux":
+        # Try common locations
+        import shutil
+        chrome_path = shutil.which("google-chrome") or shutil.which("chromium-browser") or shutil.which("chrome")
+        if chrome_path:
+            return chrome_path
+    
+    return None
+
+
+def find_chrome_user_data_dir() -> Optional[str]:
+    """Find Chrome default user data directory based on OS."""
+    system = platform.system()
+    
+    if system == "Windows":
+        # Default Chrome user data directory on Windows
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            return os.path.join(local_app_data, "Google", "Chrome", "User Data")
+    elif system == "Darwin":  # macOS
+        home = os.path.expanduser("~")
+        return os.path.join(home, "Library", "Application Support", "Google", "Chrome")
+    elif system == "Linux":
+        home = os.path.expanduser("~")
+        return os.path.join(home, ".config", "google-chrome")
+    
+    return None
+
+
+@app.post("/api/chrome/start-remote-debugging", response_model=ChromeStartResponse)
+async def start_chrome_remote_debugging():
+    """
+    Start Chrome with remote debugging enabled on port 9222.
+    Uses the user's existing Chrome profile so they don't need to log in again.
+    """
+    port = 9222
+    
+    # Check if port is already open (Chrome already running with remote debugging)
+    if check_port_open("127.0.0.1", port):
+        print(f"[Chrome] Port {port} is already open - Chrome remote debugging is already running")
+        
+        # Navigate to LinkedIn automatically even if Chrome is already running
+        driver = None
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.service import Service as ChromeService
+            from selenium.webdriver.chrome.options import Options as ChromeOptions
+            from webdriver_manager.chrome import ChromeDriverManager
+            import shutil
+            
+            # Connect to existing Chrome instance
+            chrome_options = ChromeOptions()
+            chrome_options.add_experimental_option("debuggerAddress", f"127.0.0.1:{port}")
+            
+            # Setup Chrome service (using same pattern as Firefox)
+            from linkedin_scraper import get_chromedriver_service
+            service = get_chromedriver_service()
+            
+            # Connect to Chrome
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            driver.implicitly_wait(5)
+            
+            # Navigate to LinkedIn
+            print(f"[Chrome] Navigating to LinkedIn...")
+            driver.get("https://www.linkedin.com")
+            
+            # Wait a moment for page to load
+            time.sleep(2)
+            
+            # Verify we're on LinkedIn
+            current_url = driver.current_url
+            print(f"[Chrome] Current URL: {current_url}")
+            
+            if "linkedin.com" in current_url:
+                print(f"[Chrome] ✓ Successfully navigated to LinkedIn")
+            else:
+                print(f"[Chrome] ⚠️ Navigation may have failed, current URL: {current_url}")
+            
+            # Don't close the driver - keep it connected so the tab stays open
+            # The extraction function will create its own connection
+            
+        except Exception as nav_error:
+            print(f"[Chrome] ⚠️ Could not navigate to LinkedIn automatically: {nav_error}")
+            import traceback
+            traceback.print_exc()
+            # Continue anyway - user can navigate manually
+            if driver:
+                try:
+                    driver.quit()
+                except:
+                    pass
+        
+        return ChromeStartResponse(
+            success=True,
+            message="Chrome remote debugging is already running on port 9222. LinkedIn opened automatically.",
+            already_running=True,
+            port=port
+        )
+    
+    # Find Chrome executable
+    chrome_path = find_chrome_executable()
+    if not chrome_path:
+        error_msg = "Chrome not found. Please install Google Chrome."
+        print(f"[Chrome] {error_msg}")
+        return ChromeStartResponse(
+            success=False,
+            message=error_msg,
+            already_running=False,
+            port=port
+        )
+    
+    # Try to use the user's existing Chrome profile
+    # This allows them to use their existing login session
+    system = platform.system()
+    user_data_dir = find_chrome_user_data_dir()
+    chrome_running = is_chrome_running()
+    
+    if user_data_dir and os.path.exists(user_data_dir):
+        if chrome_running:
+            # Chrome is running - we can't use the same profile
+            # Use a separate profile but try to copy cookies/session if possible
+            print(f"[Chrome] Chrome is currently running - cannot use the same profile")
+            print(f"[Chrome] Using separate profile so you can keep your current Chrome open")
+            
+            # Create separate directory
+            if system == "Windows":
+                debug_dir = os.path.join(os.environ.get("TEMP", ""), "chrome_debug_linkedin")
+            elif system == "Darwin":  # macOS
+                debug_dir = os.path.join(os.path.expanduser("~"), ".chrome_debug_linkedin")
+            else:  # Linux
+                debug_dir = os.path.join(os.path.expanduser("~"), ".chrome_debug_linkedin")
+            
+            os.makedirs(debug_dir, exist_ok=True)
+            print(f"[Chrome] Using separate Chrome profile: {debug_dir}")
+            print(f"[Chrome] NOTE: You will need to log into LinkedIn in the new Chrome window.")
+        else:
+            # Chrome is not running - we can use the existing profile
+            debug_dir = user_data_dir
+            print(f"[Chrome] Using your existing Chrome profile: {debug_dir}")
+            print(f"[Chrome] This will use your existing login sessions and bookmarks.")
+    else:
+        # Fallback to separate directory if default profile not found
+        if system == "Windows":
+            debug_dir = os.path.join(os.environ.get("TEMP", ""), "chrome_debug_linkedin")
+        elif system == "Darwin":  # macOS
+            debug_dir = os.path.join(os.path.expanduser("~"), ".chrome_debug_linkedin")
+        else:  # Linux
+            debug_dir = os.path.join(os.path.expanduser("~"), ".chrome_debug_linkedin")
+        
+        os.makedirs(debug_dir, exist_ok=True)
+        print(f"[Chrome] Using separate Chrome profile: {debug_dir}")
+        print(f"[Chrome] NOTE: You will need to log into LinkedIn in this new Chrome window.")
+    
+    try:
+        # Start Chrome with remote debugging
+        print(f"[Chrome] Starting Chrome with remote debugging on port {port}")
+        print(f"[Chrome] Chrome path: {chrome_path}")
+        print(f"[Chrome] User data directory: {debug_dir}")
+        
+        # Start Chrome with LinkedIn URL directly as command line argument
+        linkedin_url = "https://www.linkedin.com"
+        
+        if system == "Windows":
+            # Windows: use subprocess.Popen with DETACHED_PROCESS to run in background
+            # Chrome window will still show, but it runs detached from Python process
+            subprocess.Popen(
+                [chrome_path, f"--remote-debugging-port={port}", f"--user-data-dir={debug_dir}", linkedin_url],
+                creationflags=subprocess.DETACHED_PROCESS,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL
+            )
+        elif system == "Darwin":  # macOS
+            # macOS: use subprocess.Popen with detach
+            subprocess.Popen(
+                [chrome_path, f"--remote-debugging-port={port}", f"--user-data-dir={debug_dir}", linkedin_url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True
+            )
+        else:  # Linux
+            subprocess.Popen(
+                [chrome_path, f"--remote-debugging-port={port}", f"--user-data-dir={debug_dir}", linkedin_url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True
+            )
+        
+        # Wait a bit for Chrome to start
+        time.sleep(5)  # Increased wait time for Chrome to fully initialize
+        
+        # Check if port is now open and navigate to LinkedIn
+        max_attempts = 15  # Increased attempts
+        driver = None
+        for attempt in range(max_attempts):
+            if check_port_open("127.0.0.1", port):
+                print(f"[Chrome] ✓ Chrome started successfully with remote debugging on port {port}")
+                
+                # Navigate to LinkedIn automatically
+                try:
+                    from selenium import webdriver
+                    from selenium.webdriver.chrome.service import Service as ChromeService
+                    from selenium.webdriver.chrome.options import Options as ChromeOptions
+                    from webdriver_manager.chrome import ChromeDriverManager
+                    import shutil
+                    
+                    # Connect to existing Chrome instance
+                    chrome_options = ChromeOptions()
+                    chrome_options.add_experimental_option("debuggerAddress", f"127.0.0.1:{port}")
+                    
+                    # Setup Chrome service (using same pattern as Firefox)
+                    from linkedin_scraper import get_chromedriver_service
+                    service = get_chromedriver_service()
+                    
+                    # Connect to Chrome - wait a bit more for it to be ready
+                    time.sleep(2)
+                    driver = webdriver.Chrome(service=service, options=chrome_options)
+                    
+                    # Wait for Chrome to be ready
+                    driver.implicitly_wait(5)
+                    
+                    # Check current URL - Chrome should already be on LinkedIn if we passed it as argument
+                    current_url = driver.current_url
+                    print(f"[Chrome] Current URL after connection: {current_url}")
+                    
+                    # If not on LinkedIn, navigate to it
+                    if "linkedin.com" not in current_url:
+                        print(f"[Chrome] Navigating to LinkedIn...")
+                        driver.get("https://www.linkedin.com")
+                        time.sleep(2)
+                        current_url = driver.current_url
+                        print(f"[Chrome] Current URL after navigation: {current_url}")
+                    
+                    if "linkedin.com" in current_url:
+                        print(f"[Chrome] ✓ Successfully on LinkedIn")
+                    else:
+                        print(f"[Chrome] ⚠️ May not be on LinkedIn, current URL: {current_url}")
+                    
+                    # Don't close the driver - keep it connected so the tab stays open
+                    # The extraction function will create its own connection
+                    
+                except Exception as nav_error:
+                    print(f"[Chrome] ⚠️ Could not navigate to LinkedIn automatically: {nav_error}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continue anyway - user can navigate manually
+                    if driver:
+                        try:
+                            driver.quit()
+                        except:
+                            pass
+                
+                return ChromeStartResponse(
+                    success=True,
+                    message=f"Chrome started with remote debugging on port {port}. LinkedIn opened automatically - please log in if needed.",
+                    already_running=False,
+                    port=port
+                )
+            time.sleep(1)
+        
+        # Port still not open after waiting
+        print(f"[Chrome] ⚠️ Chrome may have started but port {port} is not yet accessible")
+        return ChromeStartResponse(
+            success=True,
+            message=f"Chrome startup initiated. Port {port} may take a few more seconds to become available. Please log into LinkedIn in the new Chrome window.",
+            already_running=False,
+            port=port
+        )
+        
+    except Exception as e:
+        error_msg = f"Failed to start Chrome: {str(e)}"
+        print(f"[Chrome] ✗ {error_msg}")
+        import traceback
+        traceback.print_exc()
+        return ChromeStartResponse(
+            success=False,
+            message=error_msg,
+            already_running=False,
+            port=port
         )
 
 

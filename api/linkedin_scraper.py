@@ -11,9 +11,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.chrome import ChromeDriverManager
 
 from utilities import wait, scroll_to_bottom, parse_linkedin_url
 
@@ -82,6 +85,71 @@ def get_geckodriver_service():
             print("   - Extract and add to your PATH")
             print("   - Or place geckodriver.exe in the api/ folder")
             print("="*60)
+        raise
+
+
+def get_chromedriver_service():
+    """
+    Get chromedriver service, handling download issues by using cached versions.
+    Similar to get_geckodriver_service() but for Chrome.
+    """
+    import shutil
+    import os
+    from pathlib import Path
+    
+    # Try to use chromedriver from PATH first
+    chromedriver_path = shutil.which("chromedriver")
+    if chromedriver_path:
+        print(f"[Driver] Using chromedriver from PATH: {chromedriver_path}")
+        return ChromeService(chromedriver_path)
+    
+    # Try to find chromedriver in api folder
+    try:
+        api_dir = Path(__file__).parent
+        chromedriver_exe = api_dir / ("chromedriver.exe" if os.name == 'nt' else "chromedriver")
+        if chromedriver_exe.exists():
+            print(f"[Driver] Using chromedriver from api folder: {chromedriver_exe}")
+            return ChromeService(str(chromedriver_exe))
+    except:
+        pass
+    
+    # Try to use cached version from webdriver-manager
+    try:
+        cache_dir = Path.home() / ".wdm" / "drivers" / "chromedriver"
+        if cache_dir.exists():
+            # Find the latest version
+            versions = [d for d in cache_dir.iterdir() if d.is_dir()]
+            if versions:
+                latest = max(versions, key=lambda x: x.name)
+                # ChromeDriver structure: chromedriver/version/platform/chromedriver.exe
+                platform_dirs = [d for d in latest.iterdir() if d.is_dir()]
+                if platform_dirs:
+                    for platform_dir in platform_dirs:
+                        chromedriver_exe = platform_dir / ("chromedriver.exe" if os.name == 'nt' else "chromedriver")
+                        if chromedriver_exe.exists():
+                            print(f"[Driver] Using cached chromedriver: {chromedriver_exe}")
+                            return ChromeService(str(chromedriver_exe))
+    except Exception as e:
+        print(f"[Driver] Error checking cached chromedriver: {e}")
+        pass
+    
+    # Fallback: Try to download
+    try:
+        print("[Driver] Downloading chromedriver via webdriver-manager...")
+        return ChromeService(ChromeDriverManager().install())
+    except Exception as e:
+        print(f"[Driver] Error downloading chromedriver: {e}")
+        print("\n" + "="*60)
+        print("⚠️ CHROMEDRIVER SETUP ERROR")
+        print("="*60)
+        print("ChromeDriver setup failed.")
+        print("\nSolutions:")
+        print("1. Install chromedriver manually:")
+        print("   - Download from: https://chromedriver.chromium.org/downloads")
+        print("   - Extract and add to your PATH")
+        print("   - Or place chromedriver.exe in the api/ folder")
+        print("2. Make sure ChromeDriver version matches your Chrome version")
+        print("="*60)
         raise
 
 
@@ -666,6 +734,316 @@ def extract_profile_links(
         if driver:
             try:
                 driver.quit()
+            except:
+                pass
+
+
+def extract_profile_links_chrome(
+    search_url: str,
+    max_results: int = 50,
+    max_pages: int = 1,
+    return_by_page: bool = False,
+    remote_debugging_port: int = 9222
+):
+    """
+    Extract profile links/URLs from LinkedIn search results using Chrome with remote debugging.
+    This connects to an existing Chrome instance running with remote debugging enabled.
+    
+    Args:
+        search_url: LinkedIn search results URL
+        max_results: Maximum number of results to extract
+        max_pages: Maximum number of pages to extract
+        return_by_page: If True, returns dict with 'links' and 'by_page' keys
+        remote_debugging_port: Port number for Chrome remote debugging (default: 9222)
+    
+    Returns:
+        List of profile URLs (strings) or dict with 'links' and 'by_page' if return_by_page=True
+    """
+    profile_links = []
+    
+    print(f"[Chrome Link Extractor] Starting profile link extraction for URL: {search_url}")
+    print(f"[Chrome Link Extractor] Max results: {max_results}, Max pages: {max_pages}")
+    print(f"[Chrome Link Extractor] Connecting to Chrome remote debugging on port {remote_debugging_port}")
+    
+    # Parse URL to extract parameters
+    url_params = parse_linkedin_url(search_url)
+    keywords = url_params.get('keywords', '')
+    geo_urn = url_params.get('geo_urn', '')
+    
+    # Setup Chrome options to connect to existing instance
+    # NOTE: When connecting via remote debugging, we can only set debuggerAddress
+    # Other options like excludeSwitches must be set when Chrome starts, not when connecting
+    chrome_options = ChromeOptions()
+    chrome_options.add_experimental_option("debuggerAddress", f"127.0.0.1:{remote_debugging_port}")
+    
+    # Don't set other options when connecting to existing Chrome instance
+    # These would cause "unrecognized chrome option" errors
+    
+    # Setup Chrome service (using same pattern as Firefox)
+    service = get_chromedriver_service()
+    
+    # Create driver
+    driver = None
+    try:
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.maximize_window()
+        
+        # Build search URL
+        if geo_urn:
+            search_url_full = f"{BASE_LINKEDIN_URL}/search/results/people/?geoUrn={geo_urn}&keywords={keywords}&origin=SWITCH_SEARCH_VERTICAL&sid=p%2CR"
+        else:
+            search_url_full = f"{BASE_LINKEDIN_URL}/search/results/people/?keywords={keywords}&origin=SWITCH_SEARCH_VERTICAL&sid=p%2CR"
+        
+        # Navigate to search URL
+        print(f"[Chrome Link Extractor] Navigating to: {search_url_full}")
+        driver.get(search_url_full)
+        wait(5)  # Wait longer for page to load
+        
+        # Verify we're on the right page
+        current_url = driver.current_url
+        print(f"[Chrome Link Extractor] Current URL after navigation: {current_url}")
+        
+        # Check if we need to login or if there's a redirect
+        if "challenge" in current_url.lower() or "login" in current_url.lower():
+            error_msg = "Detected login/challenge page. Make sure you're logged into LinkedIn in Chrome."
+            print(f"[Chrome Link Extractor] ⚠️ {error_msg}")
+            raise Exception(error_msg)
+        
+        # Check if we're actually on a search results page
+        if "/search/results/people" not in current_url:
+            error_msg = f"Not on LinkedIn search results page. Current URL: {current_url}"
+            print(f"[Chrome Link Extractor] ⚠️ {error_msg}")
+            raise Exception(error_msg)
+        
+        # Wait for page to fully load - check for search results container
+        try:
+            WebDriverWait(driver, 15).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
+            print("[Chrome Link Extractor] Page loaded (document.readyState = complete)")
+        except Exception as e:
+            print(f"[Chrome Link Extractor] ⚠️ Page may not have fully loaded: {e}")
+        
+        # Check page title to verify we're on LinkedIn
+        try:
+            page_title = driver.title
+            print(f"[Chrome Link Extractor] Page title: {page_title}")
+            if "LinkedIn" not in page_title:
+                print("[Chrome Link Extractor] ⚠️ Warning: Page title doesn't contain 'LinkedIn'")
+        except Exception as e:
+            print(f"[Chrome Link Extractor] ⚠️ Could not get page title: {e}")
+        
+        # Scroll to bottom to load pagination
+        scroll_to_bottom(driver)
+        wait(3)  # Wait longer after scrolling
+        
+        # Get total number of pages
+        total_pages = max_pages
+        try:
+            pagination_list = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, PAGINATION_LIST_CLASS))
+            )
+            last_page_number = int(pagination_list.find_elements(By.TAG_NAME, "li")[-1].find_element(By.TAG_NAME, "span").text)
+            total_pages = min(last_page_number, max_pages)
+            print(f"[Chrome Link Extractor] Found {last_page_number} pages, will extract up to {total_pages} pages")
+        except Exception as e:
+            print(f"[Chrome Link Extractor] Could not find pagination list: {e}")
+            print("[Chrome Link Extractor] Assuming only one page of results...")
+            total_pages = 1
+        
+        # Extract links from each page
+        current_page = 1
+        page_links = []  # Store links per page
+        
+        for _ in range(total_pages):
+            if len(profile_links) >= max_results:
+                print(f"[Chrome Link Extractor] Reached max results ({max_results}), stopping...")
+                break
+            
+            print(f"\n[Chrome Link Extractor] Extracting links from page {current_page}/{total_pages}...")
+            print("-" * 60)
+            
+            # Navigate to page (if not first page)
+            if current_page > 1:
+                if geo_urn:
+                    page_url = f"{BASE_LINKEDIN_URL}/search/results/people/?geoUrn={geo_urn}&keywords={keywords}&origin=SWITCH_SEARCH_VERTICAL&sid=p%2CR&page={current_page}"
+                else:
+                    page_url = f"{BASE_LINKEDIN_URL}/search/results/people/?keywords={keywords}&origin=SWITCH_SEARCH_VERTICAL&sid=p%2CR&page={current_page}"
+                driver.get(page_url)
+                wait(4)  # Wait longer for page to load
+                
+                # Verify we're on the right page
+                if "challenge" in driver.current_url.lower() or "login" in driver.current_url.lower():
+                    print(f"[Chrome Link Extractor] ⚠️ Detected login/challenge page on page {current_page}")
+            
+            # Wait a bit and scroll to ensure content loads
+            wait(3)
+            scroll_to_bottom(driver)
+            wait(2)
+            driver.execute_script("window.scrollTo(0, 0);")  # Scroll back to top
+            wait(1)
+            
+            # Find all profile links on the page
+            try:
+                # Try multiple selectors to find profile links
+                all_profile_links = []
+                
+                # Primary selector
+                try:
+                    links1 = driver.find_elements(By.CSS_SELECTOR, "a[href*='/in/']")
+                    all_profile_links.extend(links1)
+                    print(f"[Chrome Link Extractor] Found {len(links1)} links with selector 'a[href*=/in/]'")
+                except Exception as e:
+                    print(f"[Chrome Link Extractor] Error with primary selector: {e}")
+                
+                # Alternative: Look for search result items
+                try:
+                    search_results = driver.find_elements(By.CSS_SELECTOR, ".reusable-search__result-container, .entity-result, .search-result")
+                    print(f"[Chrome Link Extractor] Found {len(search_results)} search result containers")
+                    
+                    # Extract links from result containers
+                    for result in search_results:
+                        try:
+                            links_in_result = result.find_elements(By.CSS_SELECTOR, "a[href*='/in/']")
+                            for link in links_in_result:
+                                if link not in all_profile_links:
+                                    all_profile_links.append(link)
+                        except:
+                            continue
+                except Exception as e:
+                    print(f"[Chrome Link Extractor] Error finding result containers: {e}")
+                
+                # Remove duplicates
+                seen_elements = set()
+                unique_links = []
+                for link in all_profile_links:
+                    try:
+                        link_id = id(link)
+                        if link_id not in seen_elements:
+                            seen_elements.add(link_id)
+                            unique_links.append(link)
+                    except:
+                        continue
+                
+                all_profile_links = unique_links
+                print(f"[Chrome Link Extractor] Found {len(all_profile_links)} unique profile links on page {current_page}")
+                
+                # Debug: Print page source snippet if no links found
+                if len(all_profile_links) == 0:
+                    print("[Chrome Link Extractor] ⚠️ No profile links found. Checking page content...")
+                    try:
+                        page_source_snippet = driver.page_source[:1000]
+                        print(f"[Chrome Link Extractor] Page source snippet (first 1000 chars): {page_source_snippet}")
+                        
+                        # Check if page has any links at all
+                        all_links = driver.find_elements(By.TAG_NAME, "a")
+                        print(f"[Chrome Link Extractor] Total links on page: {len(all_links)}")
+                        if len(all_links) > 0:
+                            sample_hrefs = [link.get_attribute("href") for link in all_links[:10] if link.get_attribute("href")]
+                            print(f"[Chrome Link Extractor] Sample hrefs: {sample_hrefs}")
+                    except Exception as debug_error:
+                        print(f"[Chrome Link Extractor] Error during debug: {debug_error}")
+                
+                # Extract unique profile URLs
+                seen_profile_ids = set()
+                page_links_list = []
+                
+                for link in all_profile_links:
+                    if len(profile_links) >= max_results:
+                        break
+                    
+                    try:
+                        href = link.get_attribute("href")
+                        if not href or "/in/" not in href:
+                            continue
+                        
+                        # Clean and extract profile URL
+                        clean_href = href.split("?")[0].split("#")[0]  # Remove query params and fragments
+                        if "/in/" in clean_href:
+                            try:
+                                profile_id = clean_href.split("/in/")[1].strip("/")
+                                if profile_id and len(profile_id) > 2 and profile_id not in seen_profile_ids:
+                                    seen_profile_ids.add(profile_id)
+                                    profile_links.append(clean_href)
+                                    page_links_list.append(clean_href)
+                                    print(f"  {len(page_links_list)}. {clean_href}")
+                            except:
+                                # Fallback: use full URL if profile ID extraction fails
+                                if clean_href not in seen_profile_ids:
+                                    seen_profile_ids.add(clean_href)
+                                    profile_links.append(clean_href)
+                                    page_links_list.append(clean_href)
+                                    print(f"  {len(page_links_list)}. {clean_href}")
+                    except:
+                        continue
+                
+                # Store links for this page
+                page_links.append({
+                    'page': current_page,
+                    'links': page_links_list,
+                    'count': len(page_links_list)
+                })
+                
+                print(f"[Chrome Link Extractor] Page {current_page}: Found {len(page_links_list)} unique profile links")
+                
+            except Exception as e:
+                print(f"[Chrome Link Extractor] Error extracting links from page {current_page}: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Increment current page
+            current_page += 1
+        
+        print(f"\n[Chrome Link Extractor] ✓ Extracted {len(profile_links)} profile links total from {len(page_links)} pages")
+        print("\n" + "="*60)
+        print("ALL PROFILE LINKS BY PAGE:")
+        print("="*60)
+        
+        for page_data in page_links:
+            print(f"\nPAGE {page_data['page']} ({page_data['count']} links):")
+            print("-" * 60)
+            for i, link in enumerate(page_data['links'], 1):
+                print(f"  {i}. {link}")
+        
+        print("\n" + "="*60)
+        print("SUMMARY:")
+        print("="*60)
+        for page_data in page_links:
+            print(f"Page {page_data['page']}: {page_data['count']} links")
+        print(f"Total: {len(profile_links)} profile links from {len(page_links)} pages")
+        print("="*60)
+        
+        if return_by_page:
+            return {
+                'links': profile_links,
+                'by_page': page_links
+            }
+        return profile_links
+        
+    except Exception as e:
+        error_msg = f"Chrome extraction error: {str(e)}"
+        print(f"[Chrome Link Extractor] ✗ {error_msg}")
+        import traceback
+        traceback.print_exc()
+        
+        # If we have links, return them; otherwise raise the error
+        if len(profile_links) == 0:
+            raise Exception(error_msg)
+        
+        # Return what we have if return_by_page is True
+        if return_by_page:
+            return {
+                'links': profile_links,
+                'by_page': page_links if 'page_links' in locals() else []
+            }
+        return profile_links
+        
+    finally:
+        # Don't quit the driver - we're connected to an existing Chrome instance
+        # Just close the connection
+        if driver:
+            try:
+                driver.close()  # Close the tab, not the browser
             except:
                 pass
 
@@ -1685,6 +2063,35 @@ def extract_and_filter_names(
     print("="*60)
     
     return filtered_profiles
+
+
+async def extract_profile_links_chrome_async(
+    search_url: str,
+    max_results: int = 50,
+    max_pages: int = 1,
+    return_by_page: bool = False,
+    remote_debugging_port: int = 9222
+):
+    """
+    Async wrapper for extract_profile_links_chrome.
+    This runs the blocking Selenium code in a thread pool.
+    """
+    import asyncio
+    import concurrent.futures
+    
+    loop = asyncio.get_event_loop()
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        result = await loop.run_in_executor(
+            executor,
+            extract_profile_links_chrome,
+            search_url,
+            max_results,
+            max_pages,
+            return_by_page,
+            remote_debugging_port
+        )
+        return result
 
 
 async def extract_profile_links_async(
