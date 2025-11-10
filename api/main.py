@@ -211,11 +211,11 @@ _linkedin_auth_cache = {
 }
 
 # Store for bookmarklet status (shared across domains)
+# Status persists until user logs out (no time-based expiration)
 _bookmarklet_status_store = {
     "logged_in": None,
     "user_name": None,
-    "timestamp": 0,
-    "ttl": 300  # Valid for 5 minutes
+    "timestamp": 0
 }
 
 @app.get("/api/linkedin-auth-status")
@@ -287,6 +287,21 @@ async def save_bookmarklet_status(request: BookmarkletStatusRequest):
     """Save bookmarklet status from LinkedIn page"""
     import time
     print(f"[API] Received bookmarklet status: logged_in={request.logged_in}, user_name={request.user_name}")
+    
+    # If user logged out, clear the status
+    if not request.logged_in:
+        _bookmarklet_status_store["logged_in"] = None
+        _bookmarklet_status_store["user_name"] = None
+        _bookmarklet_status_store["timestamp"] = 0
+        print(f"[API] User logged out - status cleared")
+        return {
+            "status": "success",
+            "message": "Status cleared (user logged out)",
+            "logged_in": False,
+            "user_name": None
+        }
+    
+    # User is logged in - save the status
     _bookmarklet_status_store["logged_in"] = request.logged_in
     _bookmarklet_status_store["user_name"] = request.user_name
     _bookmarklet_status_store["timestamp"] = time.time()
@@ -308,6 +323,21 @@ async def get_bookmarklet_status(logged_in: Optional[bool] = None, user_name: Op
     # If query parameters are provided, save the status (for bookmarklet)
     if logged_in is not None:
         print(f"[API] GET bookmarklet-status: Saving status via GET - logged_in={logged_in}, user_name={user_name}")
+        
+        # If user logged out, clear the status
+        if not logged_in:
+            _bookmarklet_status_store["logged_in"] = None
+            _bookmarklet_status_store["user_name"] = None
+            _bookmarklet_status_store["timestamp"] = 0
+            print(f"[API] User logged out - status cleared")
+            return {
+                "status": "success",
+                "message": "Status cleared (user logged out)",
+                "logged_in": False,
+                "user_name": None
+            }
+        
+        # User is logged in - save the status
         _bookmarklet_status_store["logged_in"] = logged_in
         _bookmarklet_status_store["user_name"] = user_name
         _bookmarklet_status_store["timestamp"] = current_time
@@ -330,22 +360,25 @@ async def get_bookmarklet_status(logged_in: Optional[bool] = None, user_name: Op
             "message": "Status not set - click bookmarklet on LinkedIn"
         }
     
+    # Calculate age: time elapsed (in seconds) since bookmarklet status was saved
     age = current_time - _bookmarklet_status_store["timestamp"]
     print(f"[API] GET bookmarklet-status: age={int(age)}s, logged_in={_bookmarklet_status_store['logged_in']}")
     
-    if age > _bookmarklet_status_store["ttl"]:
+    # Check if stored status indicates user is logged out (shouldn't happen, but safety check)
+    if _bookmarklet_status_store["logged_in"] is False:
         return {
             "logged_in": None,
             "user_name": None,
             "status": "expired",
-            "message": "Status expired - click bookmarklet again on LinkedIn"
+            "message": "User logged out - click bookmarklet again on LinkedIn"
         }
     
+    # Status persists until user logs out (no time-based expiration)
     return {
         "logged_in": _bookmarklet_status_store["logged_in"],
         "user_name": _bookmarklet_status_store["user_name"],
         "status": "success",
-        "age": int(age),
+        "age": int(age),  # Age in seconds since status was saved (informational only)
         "source": "bookmarklet"
     }
 

@@ -49,25 +49,6 @@
 										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">New Capture</h1>
 										<p class="text-base text-link dark:text-darklink">Create a new LinkedIn lead capture run</p>
 									</div>
-									<div class="flex flex-col items-end gap-2">
-										<!-- LinkedIn Status Indicator -->
-										<div id="linkedin-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark transition-shadow">
-											<div id="linkedin-status-icon" class="w-3 h-3 rounded-full bg-gray-400"></div>
-											<span id="linkedin-status-text" class="text-sm text-link dark:text-darklink">Click bookmarklet on LinkedIn</span>
-										</div>
-										<!-- Chrome Extension Installer -->
-										<a href="javascript:void(0)" 
-										   id="extension-installer" 
-										   draggable="true"
-										   class="flex items-center gap-2 px-4 py-2 rounded-md border-2 border-dashed border-primary bg-lightprimary dark:bg-darkprimary text-primary hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-all cursor-move"
-										   title="Drag this to your bookmarks bar to install the LinkedIn Checker extension">
-											<i class="ti ti-brand-chrome text-lg"></i>
-											<span class="text-sm font-medium">Drag to Install Extension</span>
-										</a>
-										<p class="text-xs text-link dark:text-darklink text-right max-w-[200px]">
-											Drag to bookmarks bar, then click on LinkedIn
-										</p>
-									</div>
 								</div>
 							</div>
 
@@ -301,6 +282,20 @@
 		<script>
 			// API Configuration
 			const API_BASE_URL = 'http://localhost:8000';
+			
+			// Helper function to capitalize first letter of each word
+			function capitalizeWords(str) {
+				if (!str) return str;
+				return str.split(/\s+/).map(word => {
+					// Handle hyphenated words (e.g., "mary-jane" -> "Mary-Jane")
+					if (word.includes('-')) {
+						return word.split('-').map(part => 
+							part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+						).join('-');
+					}
+					return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+				}).join(' ');
+			}
 			
 			// Application state
 			let currentStep = 1;
@@ -1211,13 +1206,13 @@
 							statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
 							// Show user name if available
 							const displayText = result.user_name 
-								? `LinkedIn: ${result.user_name}` 
+								? `LinkedIn: ${capitalizeWords(result.user_name)}` 
 								: (result.message || 'LinkedIn: Logged In (Firefox)');
 							statusText.textContent = displayText;
 							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
 							statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
 							const tooltip = result.user_name 
-								? `Logged in as ${result.user_name} (Firefox) - Ready to capture leads`
+								? `Logged in as ${capitalizeWords(result.user_name)} (Firefox) - Ready to capture leads`
 								: ((result.note || result.suggestion || 'LinkedIn authentication verified via Firefox profile').trim());
 							statusIndicator.title = tooltip || 'LinkedIn: Logged In (Firefox) - Ready to capture leads';
 							
@@ -1235,13 +1230,13 @@
 							statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
 							// Show user name if available
 							const displayText = result.user_name 
-								? `LinkedIn: ${result.user_name}` 
+								? `LinkedIn: ${capitalizeWords(result.user_name)}` 
 								: (result.message || 'LinkedIn: Logged In (Firefox)');
 							statusText.textContent = displayText;
 							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
 							statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
 							const tooltip = result.user_name 
-								? `Logged in as ${result.user_name} (Firefox)`
+								? `Logged in as ${capitalizeWords(result.user_name)} (Firefox)`
 								: ((result.note || result.suggestion || 'LinkedIn authentication verified via Firefox profile').trim());
 							statusIndicator.title = tooltip || 'LinkedIn: Logged In (Firefox)';
 							statusIndicator.style.cursor = 'default';
@@ -1359,11 +1354,11 @@
 					// Log to console
 					if (result && result.logged_in === true) {
 						const cacheNote = result.cached ? ' (cached)' : '';
-						const userNameNote = result.user_name ? ` as ${result.user_name}` : '';
+						const userNameNote = result.user_name ? ` as ${capitalizeWords(result.user_name)}` : '';
 						console.log(`%c✓ LinkedIn: LOGGED IN (Firefox)${userNameNote}${cacheNote}`, 'color: #00a86b; font-weight: bold; font-size: 14px;');
 						console.log(`%c  Status: ${result.message || 'Authenticated'}`, 'color: #00a86b;');
 						if (result.user_name) {
-							console.log(`%c  User: ${result.user_name}`, 'color: #00a86b;');
+							console.log(`%c  User: ${capitalizeWords(result.user_name)}`, 'color: #00a86b;');
 						}
 						if (result.note) {
 							console.log(`%c  ${result.note}`, 'color: #00a86b;');
@@ -1414,62 +1409,79 @@
 				}
 			}
 			
+			// Bookmarklet status - no polling needed, status persists until user logs out
+			let lastValidStatus = null;
+			
 			// Check for bookmarklet status from API
 			async function checkBookmarkletStatus() {
 				try {
 					const result = await apiCall('/api/bookmarklet-status', 'GET', null, 5000);
 					if (result && result.status === 'success' && result.logged_in !== null) {
 						linkedinLoginStatus = result.logged_in;
+						lastValidStatus = result;
 						updateBookmarkletStatusUI({
 							loggedIn: result.logged_in,
 							userName: result.user_name
 						});
 						return true;
 					} else if (result && (result.status === 'expired' || result.status === 'not_set')) {
-						// Status expired or not set, show default
-						const statusIndicator = document.getElementById('linkedin-status-indicator');
-						const statusIcon = document.getElementById('linkedin-status-icon');
-						const statusText = document.getElementById('linkedin-status-text');
-						if (statusIndicator && statusIcon && statusText) {
-							statusIcon.className = 'w-3 h-3 rounded-full bg-gray-400';
-							statusText.textContent = result.status === 'not_set' 
-								? 'Click bookmarklet on LinkedIn' 
-								: 'Status expired - click bookmarklet again';
-							statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-dark';
-							statusText.className = 'text-sm text-link dark:text-darklink';
+						// Status expired (user logged out) or not set
+						const extensionBadge = document.getElementById('extension-installer-badge');
+						const extensionInstaller = document.getElementById('extension-installer');
+						
+						// Update extension badge - red for not logged in
+						if (extensionBadge) {
+							extensionBadge.className = 'absolute top-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-dark bg-red-500';
+							extensionBadge.classList.remove('hidden');
 						}
+						// Update extension installer title
+						if (extensionInstaller) {
+							extensionInstaller.title = 'LinkedIn: Not Logged In - Drag to Install Extension';
+						}
+						
+						lastValidStatus = null;
 					}
 				} catch (e) {
 					console.log('Error reading bookmarklet status:', e);
 				}
 				return false;
 			}
+			
+			// Check status when page becomes visible (user switches back to tab)
+			document.addEventListener('visibilitychange', () => {
+				if (!document.hidden) {
+					// Page is now visible - check status once
+					checkBookmarkletStatus();
+				}
+			});
 
-			// Update UI with bookmarklet status
+			// Update UI with bookmarklet status (badge on Chrome icon only)
 			function updateBookmarkletStatusUI(status) {
-				const statusIndicator = document.getElementById('linkedin-status-indicator');
-				const statusIcon = document.getElementById('linkedin-status-icon');
-				const statusText = document.getElementById('linkedin-status-text');
-				
-				if (!statusIndicator || !statusIcon || !statusText) return;
+				const extensionBadge = document.getElementById('extension-installer-badge');
+				const extensionInstaller = document.getElementById('extension-installer');
 				
 				if (status.loggedIn) {
-					statusIcon.className = 'w-3 h-3 rounded-full bg-green-500';
-					const displayText = status.userName 
-						? `LinkedIn: ${status.userName}` 
-						: 'LinkedIn: Logged In';
-					statusText.textContent = displayText;
-					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
-					statusText.className = 'text-sm text-green-700 dark:text-green-300 font-medium';
-					statusIndicator.title = status.userName 
-						? `Logged in as ${status.userName} (Bookmarklet)` 
-						: 'LinkedIn: Logged In (Bookmarklet)';
+					// Update extension badge - green for logged in
+					if (extensionBadge) {
+						extensionBadge.className = 'absolute inline-flex items-center justify-center  text-white text-[11px] font-medium  bg-success p-[5px] rounded-full -top-[-5px] -right-[0px]';
+						extensionBadge.classList.remove('hidden');
+					}
+					// Update extension installer title with user name
+					if (extensionInstaller) {
+						extensionInstaller.title = status.userName 
+							? `LinkedIn: ${capitalizeWords(status.userName)} - Drag to Install Extension` 
+							: 'LinkedIn: Logged In - Drag to Install Extension';
+					}
 				} else {
-					statusIcon.className = 'w-3 h-3 rounded-full bg-red-500';
-					statusText.textContent = 'LinkedIn: Not Logged In';
-					statusIndicator.className = 'flex items-center gap-2 px-4 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
-					statusText.className = 'text-sm text-red-700 dark:text-red-300 font-medium';
-					statusIndicator.title = 'LinkedIn: Not Logged In (Bookmarklet)';
+					// Update extension badge - red for logged out
+					if (extensionBadge) {
+						extensionBadge.className = 'absolute inline-flex items-center justify-center  text-white text-[11px] font-medium  bg-danger p-[5px] rounded-full -top-[-5px] -right-[0px]';
+						extensionBadge.classList.remove('hidden');
+					}
+					// Update extension installer title
+					if (extensionInstaller) {
+						extensionInstaller.title = 'LinkedIn: Not Logged In - Drag to Install Extension';
+					}
 				}
 			}
 			
@@ -1482,16 +1494,28 @@
 				// This avoids CORS issues and works immediately
 				// Improved LinkedIn login detection with multiple selectors
 				// Accurate LinkedIn detection - checks for sign-in button first, then requires multiple logged-in indicators
-				const bookmarkletCode = `javascript:(function(){var d=document;var e=d.getElementById('siftin-status-popup');if(e)e.remove();if(!d.location.hostname.includes('linkedin.com')){alert('Please navigate to LinkedIn first');d.location.href='https://www.linkedin.com';return;}var p=d.createElement('div');p.id='siftin-status-popup';p.style.cssText='position:fixed!important;top:20px!important;right:20px!important;background:white!important;border:2px solid #0077b5!important;border-radius:8px!important;padding:20px!important;box-shadow:0 4px 12px rgba(0,0,0,0.15)!important;z-index:999999!important;max-width:300px!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;';var loggedIn=false;var name='';var bodyText=d.body.textContent||'';var hasSignIn=!!(/Sign\s+in/i.test(bodyText));var hasJoinNow=!!(/Join\s+now/i.test(bodyText));if(hasSignIn||hasJoinNow){loggedIn=false;}else{var nav=d.querySelector('nav');var hasNav=!!nav;if(!hasNav){loggedIn=false;}else{var hasMessaging=!!d.querySelector('a[href*="/messaging/"]');var hasNotifications=!!d.querySelector('a[href*="/notifications/"]');var hasJobs=!!d.querySelector('a[href*="/jobs/"]');var hasMyNetwork=!!d.querySelector('a[href*="/mynetwork/"]');var hasStartPost=!!(d.querySelector('[placeholder*="Start a post"],textarea[placeholder*="Start a post"]')||bodyText.includes('Start a post'));var hasProfileCard=!!d.querySelector('.profile-card,.pv-profile-card');var hasFeed=!!d.querySelector('.feed-container,.scaffold-finite-scroll__content');var hasMeMenu=!!(bodyText.includes('Me')&&!hasSignIn);var indicators=0;if(hasMessaging)indicators++;if(hasNotifications)indicators++;if(hasJobs)indicators++;if(hasMyNetwork)indicators++;if(hasStartPost)indicators++;if(hasProfileCard)indicators++;if(hasFeed)indicators++;if(hasMeMenu)indicators++;loggedIn=indicators>=3;}}if(loggedIn){var nameSelectors=['.profile-card h1','.pv-profile-card h1','[data-control-name="nav.settings"]'];for(var i=0;i<nameSelectors.length;i++){var el=d.querySelector(nameSelectors[i]);if(el){var txt=el.textContent.trim();if(txt&&txt.length>2&&txt.length<50&&txt!=='Me'){name=txt;break;}}}}var statusData={logged_in:loggedIn,user_name:name};try{var apiUrl='http://localhost:8000/api/bookmarklet-status?logged_in='+encodeURIComponent(loggedIn)+(name?'&user_name='+encodeURIComponent(name):'');var img=new Image();img.onload=function(){console.log('Status saved to API via GET');};img.onerror=function(){console.log('Could not save status - trying alternative method');var xhr=new XMLHttpRequest();xhr.open('GET',apiUrl,true);xhr.onload=function(){if(xhr.status===200){var data=JSON.parse(xhr.responseText);console.log('Status saved to API:',data);}else{console.log('API error:',xhr.status);}};xhr.onerror=function(){console.log('Network error - API may be blocked by LinkedIn');};xhr.send();};img.src=apiUrl;}catch(err){console.log('Error:',err);}var s=loggedIn?'Logged In':'Not Logged In';var c=loggedIn?'#388e3c':'#d32f2f';var b=loggedIn?'#e8f5e9':'#ffebee';p.innerHTML='<div style="text-align:center"><h3 style="margin:0 0 10px 0;color:#0077b5">LinkedIn Status</h3><div style="padding:10px;border-radius:4px;background:'+b+'"><div style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+c+';margin-right:8px"></div><span style="color:'+c+';font-weight:bold">'+s+'</span>'+(name?'<div style="margin-top:5px;font-size:12px;color:#666">as '+name+'</div>':'')+'</div><div style="margin-top:8px;font-size:11px;color:#666">Status saved to New Capture page</div><button id="siftin-close-btn" style="margin-top:10px;padding:8px 16px;background:#0077b5;color:white;border:none;border-radius:4px;cursor:pointer">Close</button></div>';d.body.appendChild(p);var closeBtn=d.getElementById('siftin-close-btn');if(closeBtn){closeBtn.onclick=function(){p.remove();};}})();`;
+				// Enhanced username extraction with multiple methods
+				// Prioritizes h3.profile-card-name as the primary selector for username
+				const bookmarkletCode = `javascript:(function(){var d=document;var e=d.getElementById('siftin-status-popup');if(e)e.remove();if(!d.location.hostname.includes('linkedin.com')){alert('Please navigate to LinkedIn first');d.location.href='https://www.linkedin.com';return;}var p=d.createElement('div');p.id='siftin-status-popup';p.style.cssText='position:fixed!important;top:20px!important;right:20px!important;background:white!important;border:2px solid #0077b5!important;border-radius:8px!important;padding:20px!important;box-shadow:0 4px 12px rgba(0,0,0,0.15)!important;z-index:999999!important;max-width:300px!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif!important;';var loggedIn=false;var name='';var bodyText=d.body.textContent||'';var hasSignIn=!!(/Sign\s+in/i.test(bodyText));var hasJoinNow=!!(/Join\s+now/i.test(bodyText));if(hasSignIn||hasJoinNow){loggedIn=false;}else{var nav=d.querySelector('nav');var hasNav=!!nav;if(!hasNav){loggedIn=false;}else{var hasMessaging=!!d.querySelector('a[href*="/messaging/"]');var hasNotifications=!!d.querySelector('a[href*="/notifications/"]');var hasJobs=!!d.querySelector('a[href*="/jobs/"]');var hasMyNetwork=!!d.querySelector('a[href*="/mynetwork/"]');var hasStartPost=!!(d.querySelector('[placeholder*="Start a post"],textarea[placeholder*="Start a post"]')||bodyText.includes('Start a post'));var hasProfileCard=!!d.querySelector('.profile-card,.pv-profile-card');var hasFeed=!!d.querySelector('.feed-container,.scaffold-finite-scroll__content');var hasMeMenu=!!(bodyText.includes('Me')&&!hasSignIn);var indicators=0;if(hasMessaging)indicators++;if(hasNotifications)indicators++;if(hasJobs)indicators++;if(hasMyNetwork)indicators++;if(hasStartPost)indicators++;if(hasProfileCard)indicators++;if(hasFeed)indicators++;if(hasMeMenu)indicators++;loggedIn=indicators>=3;}}if(loggedIn){function isValidName(txt){if(!txt||txt.length<2||txt.length>50)return false;var invalidWords=['Me','View','profile','Settings','Sign','LinkedIn','Mentions','Notifications','Messages','Jobs','My Network','Home','Search','Work','Learning','People','Posts','Articles','Companies','Groups','Events','Newsletters','Hashtags','Follow','Following','Followers','Connections','Invitations','Try Premium','Upgrade','Help','Privacy','Terms','About','Accessibility','Business Services','Talent Solutions','Marketing Solutions','Sales Solutions','Small Business','Community Guidelines','Cookie Policy','Copyright Policy','Brand Policy','Guest Controls','Language'];for(var w=0;w<invalidWords.length;w++){if(txt===invalidWords[w]||txt.includes(invalidWords[w]))return false;}return true;}var nameSelectors=['h3.profile-card-name','h1.text-heading-xlarge','h1.pv-text-details__left-panel h1','h1[data-anonymize="person-name"]','.profile-card h1','.pv-profile-card h1','[data-control-name="nav.settings"]'];for(var i=0;i<nameSelectors.length;i++){var el=d.querySelector(nameSelectors[i]);if(el){var txt=el.textContent.trim();if(isValidName(txt)){name=txt;break;}var aria=el.getAttribute('aria-label');if(aria&&aria.includes('View profile of')){txt=aria.replace('View profile of','').trim();if(isValidName(txt)){name=txt;break;}}}}if(!name){var meButton=d.querySelector('button[aria-label*="Me menu"],button[aria-label*="View profile"],a[aria-label*="Me"]');if(meButton){var aria=meButton.getAttribute('aria-label');if(aria&&aria.includes('View profile of')){var txt=aria.replace('View profile of','').trim();if(isValidName(txt)){name=txt;}}}if(!name){var profileLinks=d.querySelectorAll('a[href*="/me/"],a[href*="/in/"]');for(var j=0;j<profileLinks.length&&j<5;j++){var link=profileLinks[j];var href=link.getAttribute('href');if(href&&(href.includes('/me/')||href.includes('/in/'))){var txt=link.textContent.trim();if(isValidName(txt)){name=txt;break;}var parent=link.closest('.profile-card,.pv-profile-card,.global-nav__me-photo-container');if(parent){var spans=parent.querySelectorAll('span,h1,h2,h3');for(var k=0;k<spans.length;k++){txt=spans[k].textContent.trim();if(isValidName(txt)){name=txt;break;}}if(name)break;}}}}}}var statusData={logged_in:loggedIn,user_name:name};try{var apiUrl='http://localhost:8000/api/bookmarklet-status?logged_in='+encodeURIComponent(loggedIn)+(name?'&user_name='+encodeURIComponent(name):'');var img=new Image();img.onload=function(){console.log('Status saved to API via GET');};img.onerror=function(){console.log('Could not save status - trying alternative method');var xhr=new XMLHttpRequest();xhr.open('GET',apiUrl,true);xhr.onload=function(){if(xhr.status===200){var data=JSON.parse(xhr.responseText);console.log('Status saved to API:',data);}else{console.log('API error:',xhr.status);}};xhr.onerror=function(){console.log('Network error - API may be blocked by LinkedIn');};xhr.send();};img.src=apiUrl;}catch(err){console.log('Error:',err);}var s=loggedIn?'Logged In':'Not Logged In';var c=loggedIn?'#388e3c':'#d32f2f';var b=loggedIn?'#e8f5e9':'#ffebee';p.innerHTML='<div style="text-align:center"><h3 style="margin:0 0 10px 0;color:#0077b5">LinkedIn Status</h3><div style="padding:10px;border-radius:4px;background:'+b+'"><div style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+c+';margin-right:8px"></div><span style="color:'+c+';font-weight:bold">'+s+'</span>'+(name?'<div style="margin-top:5px;font-size:12px;color:#666">as '+name+'</div>':'')+'</div><div style="margin-top:8px;font-size:11px;color:#666">Status saved to New Capture page</div><button id="siftin-close-btn" style="margin-top:10px;padding:8px 16px;background:#0077b5;color:white;border:none;border-radius:4px;cursor:pointer">Close</button></div>';d.body.appendChild(p);var closeBtn=d.getElementById('siftin-close-btn');if(closeBtn){closeBtn.onclick=function(){p.remove();};}})();`;
 				
 				// Set href for dragging
 				installer.href = bookmarkletCode;
 				
 				// Handle drag start
 				installer.addEventListener('dragstart', function(e) {
+					// Temporarily add text content for bookmark name (browsers use link text as bookmark name)
+					const originalHTML = installer.innerHTML;
+					installer.textContent = 'Siftin Ext';
+					
+					// Set bookmark code
 					e.dataTransfer.setData('text/plain', bookmarkletCode);
 					e.dataTransfer.setData('text/uri-list', bookmarkletCode);
 					e.dataTransfer.effectAllowed = 'copy';
+					
+					// Restore original HTML after a short delay (allows drag to complete)
+					setTimeout(() => {
+						installer.innerHTML = originalHTML;
+					}, 0);
 					
 					// Visual feedback
 					installer.style.opacity = '0.5';
@@ -1514,23 +1538,23 @@
 					updateStepIndicator(1);
 					// Setup extension installer
 					setupExtensionInstaller();
-					// Check for bookmarklet status first
+					// Check for bookmarklet status on page load
 					checkBookmarkletStatus();
-					// Check LinkedIn status on page load and log to console
-					// checkLinkedInStatusOnLoad(); // Disabled - using Chrome extension instead
-					// Poll for bookmarklet status updates every 2 seconds
-					setInterval(checkBookmarkletStatus, 2000);
+					// Status persists until user logs out (no expiration)
+					// Only checks:
+					// 1. On page load
+					// 2. When page becomes visible (visibilitychange event)
 				});
 			} else {
 				updateStepIndicator(1);
 				// Setup extension installer
 				setupExtensionInstaller();
-				// Check for bookmarklet status first
+				// Check for bookmarklet status on page load
 				checkBookmarkletStatus();
-				// Check LinkedIn status on page load and log to console
-				// checkLinkedInStatusOnLoad(); // Disabled - using Chrome extension instead
-				// Poll for bookmarklet status updates every 2 seconds
-				setInterval(checkBookmarkletStatus, 2000);
+				// Status persists until user logs out (no expiration)
+				// Only checks:
+				// 1. On page load
+				// 2. When page becomes visible (visibilitychange event)
 			}
 		</script>
 	</body>
