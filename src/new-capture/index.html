@@ -96,17 +96,31 @@
 									<div id="step-1-content" class="step-content">
 										<h2 class="text-2xl font-bold text-dark dark:text-white mb-6">Step 1: LinkedIn Source</h2>
 										
-										<div class="mb-6">
-											<label for="linkedin-url" class="block text-sm font-semibold text-dark dark:text-white mb-2">LinkedIn Search URL</label>
-											<input 
-												type="text" 
-												id="linkedin-url" 
-												class="w-full px-4 py-3 border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark text-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" 
-												placeholder="https://www.linkedin.com/search/results/people/..."
-											/>
-										</div>
+									<div class="mb-6">
+										<label for="linkedin-url" class="block text-sm font-semibold text-dark dark:text-white mb-2">LinkedIn Search URL</label>
+										<input 
+											type="text" 
+											id="linkedin-url" 
+											class="w-full px-4 py-3 border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark text-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" 
+											placeholder="https://www.linkedin.com/search/results/people/..."
+										/>
+									</div>
 
-										<div class="bg-lightinfo dark:bg-darkinfo border-l-4 border-primary p-4 rounded-md mb-6">
+									<div class="mb-6">
+										<label for="max-pages" class="block text-sm font-semibold text-dark dark:text-white mb-2">Number of Pages to Scrape</label>
+										<input 
+											type="number" 
+											id="max-pages" 
+											min="1" 
+											max="50" 
+											value="10"
+											class="w-full px-4 py-3 border border-border dark:border-darkborder rounded-md bg-white dark:bg-dark text-dark dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" 
+											placeholder="10"
+										/>
+										<p class="text-xs text-link dark:text-darklink mt-1">Maximum number of search result pages to scrape (1-50)</p>
+									</div>
+
+									<div class="bg-lightinfo dark:bg-darkinfo border-l-4 border-primary p-4 rounded-md mb-6">
 											<div class="flex items-start">
 												<i class="ti ti-info-circle text-primary text-xl mr-3 mt-0.5"></i>
 												<div>
@@ -310,6 +324,7 @@
 			let extractedKeywords = '';
 			let linkedinLoginStatus = null;
 			let selectedBrowser = 'firefox'; // Track selected browser: 'firefox' or 'chrome'
+			let maxPages = 10; // Number of pages to scrape (default: 10)
 			
 			// Helper function for API calls
 			async function apiCall(endpoint, method = 'GET', data = null, timeout = 300000) {
@@ -486,6 +501,15 @@
 						return;
 					}
 					
+					// Read max pages value
+					const maxPagesInput = document.getElementById('max-pages');
+					const pagesValue = parseInt(maxPagesInput?.value || '10', 10);
+					if (pagesValue < 1 || pagesValue > 50) {
+						showError('Number of pages must be between 1 and 50');
+						return;
+					}
+					maxPages = pagesValue;
+					
 					// Extract keywords client-side (instant, no API call needed)
 					extractedKeywords = extractKeywordsFromUrl(linkedinUrl);
 					
@@ -649,7 +673,7 @@
 						const result = await apiCall(endpoint, 'POST', {
 							linkedin_url: linkedinUrl,
 							max_results: 100,
-							max_pages: 10
+							max_pages: maxPages
 						}, 300000); // 5 minutes timeout
 						
 						console.log('[Step 3] API response received:', result);
@@ -1589,10 +1613,12 @@
 				}
 			}
 			
-			// Setup Chrome Extension Installer
+			// Setup Chrome Extension Installer (Temporarily Disabled)
 			function setupExtensionInstaller() {
 				const installer = document.getElementById('extension-installer');
 				if (!installer) return;
+				// Temporarily disabled - do nothing
+				return;
 				
 				// Create inline bookmarklet code (no external script loading needed)
 				// This avoids CORS issues and works immediately

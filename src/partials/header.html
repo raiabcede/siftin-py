@@ -57,12 +57,13 @@
 
 
         <div class="icon-nav items-center gap-3 lg:gap-4 flex">
-          <!-- Extension Installer -->
+          <!-- Extension Installer (Temporarily Hidden) -->
           <a href="javascript:void(0)" 
              id="extension-installer" 
-             draggable="true"
-             class="icon-hover cursor-move text-xl hover:text-primary text-link dark:text-darklink h-10 w-10 hover:bg-lightprimary dark:hover:bg-darkprimary justify-center items-center rounded-full flex relative"
-             title="Drag to Install Extension: Drag this icon to your bookmarks bar, then click it on LinkedIn">
+             draggable="false"
+             class="icon-hover cursor-move text-xl hover:text-primary text-link dark:text-darklink h-10 w-10 hover:bg-lightprimary dark:hover:bg-darkprimary justify-center items-center rounded-full flex relative hidden"
+             title="Drag to Install Extension: Drag this icon to your bookmarks bar, then click it on LinkedIn"
+             style="display: none !important; pointer-events: none;">
             <i class="ti ti-brand-chrome relative z-[1]"></i>
             <span class="sr-only">Siftin Ext</span>
             <!-- LinkedIn Status Badge -->

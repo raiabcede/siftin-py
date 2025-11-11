@@ -231,10 +231,12 @@ async function checkBookmarkletStatus() {
 	}
 }
 
-// Setup Chrome Extension Installer
+// Setup Chrome Extension Installer (Temporarily Disabled)
 function setupExtensionInstaller() {
 	const installer = document.getElementById('extension-installer');
 	if (!installer) return;
+	// Temporarily disabled - do nothing
+	return;
 	
 	// Create inline bookmarklet code (no external script loading needed)
 	// This avoids CORS issues and works immediately
