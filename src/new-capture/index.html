@@ -530,6 +530,9 @@
 					const previewBtn = document.getElementById('step2-preview-btn');
 					const originalBtnText = previewBtn?.innerHTML || '';
 					
+					// Save draft run immediately when extraction starts
+					await autoSaveRun('draft', null);
+					
 					try {
 						// Show loading state
 						if (previewBtn) {
@@ -546,6 +549,10 @@
 						// Double-check URL is a search URL
 						if (!linkedinUrl || !linkedinUrl.includes('/search/results/people')) {
 							showLoading('leads-list', false);
+							
+							// Update draft run to failed (invalid URL)
+							await autoSaveRun('failed', 'Invalid LinkedIn URL. Must contain "/search/results/people"');
+							
 							if (previewBtn) {
 								previewBtn.disabled = false;
 								previewBtn.innerHTML = originalBtnText;
@@ -620,6 +627,10 @@
 							} catch (error) {
 								console.error('[Step 3] Error starting Chrome:', error);
 								showLoading('leads-list', false);
+								
+								// Update draft run to failed (extraction didn't start)
+								await autoSaveRun('failed', `Failed to start Chrome: ${error.message || 'Could not start Chrome with remote debugging'}`);
+								
 								if (leadsList) {
 									leadsList.innerHTML = `
 										<div class="text-center py-8">
@@ -713,22 +724,20 @@
 						// Hide loading spinner
 						showLoading('leads-list', false);
 						
+						// Extraction completed successfully (regardless of results)
 						if (foundLeads.length === 0) {
 							generateLeadsList(); // This will show "No leads found"
 							document.getElementById('mock-data-notice')?.classList.add('hidden');
-							
-							// Save failed run if no leads found
-							await autoSaveRun('failed', 'No leads found from the LinkedIn search');
 						} else {
 							// Update count immediately
 							updateLeadCount();
 							generateLeadsList();
 							// Hide mock data notice since these are real links
 							document.getElementById('mock-data-notice')?.classList.add('hidden');
-							
-							// Automatically save the run after leads are found
-							await autoSaveRun('success', null);
 						}
+						
+						// Update draft run to success (scraping finished, regardless of results)
+						await autoSaveRun('success', null);
 						
 						// Restore button
 						if (previewBtn) {
@@ -1079,22 +1088,40 @@
 			
 			async function autoSaveRun(status, errorMessage) {
 				try {
+					// For draft status, skip saving if we don't have leads yet (API requires leads)
+					// We'll save once we have results (success or failed)
+					if (status === 'draft' && (!foundLeads || foundLeads.length === 0)) {
+						console.log('[Auto-Save] Skipping draft save - no leads yet. Will save after extraction completes.');
+						return null;
+					}
+					
 					// Generate automatic run label
 					const runLabel = `Run - ${new Date().toLocaleString()}`;
 					
-					// Save the run with all found leads (selected_lead_ids will be empty initially)
-					const saveResult = await apiCall('/api/capture/save-run', 'POST', {
+					// Prepare save data
+					const saveData = {
 						linkedin_url: linkedinUrl,
 						ai_criteria: aiCriteria,
 						run_label: runLabel,
 						selected_lead_ids: [], // No leads selected yet - user will select in step 3
-						leads: foundLeads, // Save all found leads
+						leads: foundLeads || [], // Save all found leads (empty array if none)
 						status: status,
 						error_message: errorMessage
-					});
+					};
+					
+					// If we have a saved run ID, update the existing run instead of creating a new one
+					if (savedRunId) {
+						saveData.run_id = parseInt(savedRunId);
+					}
+					
+					// Save or update the run
+					const saveResult = await apiCall('/api/capture/save-run', 'POST', saveData);
 					
 					// Extract run ID from message if possible, or store success
-					savedRunId = saveResult.message.match(/ID: (\d+)/)?.[1] || null;
+					// Only update savedRunId if we don't already have one (first save)
+					if (!savedRunId) {
+						savedRunId = saveResult.message.match(/ID: (\d+)/)?.[1] || null;
+					}
 					
 					console.log('[Auto-Save] Run saved automatically:', saveResult.message);
 					
@@ -1542,6 +1569,9 @@
 			
 			// Check for bookmarklet status from API
 			async function checkBookmarkletStatus() {
+				// Temporarily disabled
+				return false;
+				
 				try {
 					const result = await apiCall('/api/bookmarklet-status', 'GET', null, 5000);
 					if (result && result.status === 'success' && result.logged_in !== null) {
