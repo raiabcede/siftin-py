@@ -101,7 +101,7 @@ const Routes = {
     {
       id: 'help',
       page: 'help',
-      path: '/index.html',
+      path: '/help/',
       title: 'Help',
       icon: 'ti-help-circle',
       active: false

@@ -4,7 +4,7 @@
 
 	<head>
 		@@include("../partials/head.html")
-		<title>Runs - Siftin</title>
+		<title>Help & Getting Started - Siftin</title>
 	</head>
 
 	<body class="DEFAULT_THEME  bg-white dark:bg-dark">
@@ -14,7 +14,7 @@
 
 				<aside id="application-sidebar-brand"
 					class="hs-overlay hs-overlay-open:translate-x-0 -translate-x-full xl:rtl:-translate-x-0 rtl:translate-x-full  left-0 rtl:left-auto rtl:right-0 transform hidden xl:block xl:translate-x-0 xl:end-auto xl:bottom-0 fixed top-0 with-vertical  left-sidebar transition-all duration-300 h-screen z-[2] flex-shrink-0 border-r rtl:border-l rtl:border-r-0 w-[270px] border-border dark:border-darkborder bg-white dark:bg-dark">
-					@@include("../partials/sidebar.html",{ "page": "runs" })
+					@@include("../partials/sidebar.html",{ "page": "help" })
 				</aside>
 				<div class="page-wrapper w-full" role="main">
 					<!--  Header Start -->
@@ -23,7 +23,7 @@
 					<div
 						class="with-vertical w-full">@@include("../partials/header.html")</div>
 					<div class="with-horizontal w-full">
-						<div class="bg-white dark:bg-dark shadow-md dark:shadow-dark-md">
+						<div class="bg-white dark:bg-dark shadow-md dark:shadow-md">
 							<div class="container">
 								@@include("../partials/horizontal-header.html")
 							</div>
@@ -34,7 +34,7 @@
 
 					<!-- Horizontal Header Menu -->
 					<aside class="with-horizontal lg:flex hidden">
-						@@include("../partials/horizontal-sidebar.html", { "page": "runs",
+						@@include("../partials/horizontal-sidebar.html", { "page": "help",
 						})
 					</aside>
 					<!-- Horizontal Header Menu End -->
@@ -44,59 +44,263 @@
 						<div class="container full-container py-5">
 							<!-- Page Title -->
 							<div class="mb-8">
-								<div class="flex items-center justify-between mb-2">
-									<div>
-										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">Capture Runs</h1>
-										<p class="text-base text-link dark:text-darklink">View and manage all your LinkedIn lead capture runs</p>
-									</div>
-									<button onclick="refreshRuns()" class="btn btn-primary flex items-center cursor-pointer">
-										<i class="ti ti-refresh mr-2"></i> Refresh
-									</button>
+								<div class="mb-2">
+									<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">Help & Getting Started</h1>
+									<p class="text-base text-link dark:text-darklink">Learn how to use Siftin to capture and route LinkedIn leads</p>
 								</div>
 							</div>
 
-							<!-- Loading Indicator -->
-							<div id="loading-indicator" class="hidden mb-6">
-								<div class="card">
-									<div class="card-body text-center py-8">
-										<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-										<p class="mt-4 text-link dark:text-darklink">Loading runs...</p>
-									</div>
-								</div>
-							</div>
-
-							<!-- Error Message -->
-							<div id="error-message" class="hidden mb-6">
-								<div class="card bg-lightdanger dark:bg-darkdanger border border-danger">
-									<div class="card-body">
+							<!-- Getting Started Checklist -->
+							<div class="card mb-6">
+								<div class="card-body">
+									<div class="flex items-center justify-between mb-6">
+										<h2 class="text-xl font-bold text-dark dark:text-white">Getting Started Checklist</h2>
 										<div class="flex items-center gap-3">
-											<i class="ti ti-alert-circle text-danger text-xl"></i>
-											<div>
-												<h5 class="font-semibold text-danger mb-1">Error</h5>
-												<p id="error-text" class="text-sm text-danger"></p>
+											<span class="text-sm text-link dark:text-darklink" id="checklist-progress">0 of 6 complete</span>
+											<div class="w-32 h-2 bg-lightsecondary dark:bg-darksecondary rounded-full overflow-hidden">
+												<div class="h-full bg-primary transition-all duration-300" id="checklist-progress-bar" style="width: 0%"></div>
+											</div>
+										</div>
+									</div>
+
+									<div class="space-y-3">
+										<!-- Checklist Item 1 -->
+										<div class="checklist-item card border border-border dark:border-darkborder hover:shadow-md transition-shadow cursor-pointer" data-checklist-id="1" onclick="toggleChecklistItem(1)">
+											<div class="card-body p-4">
+												<div class="flex items-center gap-4">
+													<div class="w-6 h-6 rounded-full border-2 border-border dark:border-darkborder flex items-center justify-center flex-shrink-0 checklist-checkbox">
+														<i class="ti ti-check text-white text-xs hidden"></i>
+													</div>
+													<i class="ti ti-circle-plus text-2xl text-primary flex-shrink-0"></i>
+													<div class="flex-1">
+														<h3 class="font-semibold text-dark dark:text-white mb-1">Create Your First Capture</h3>
+														<p class="text-sm text-link dark:text-darklink">Learn how to set up a LinkedIn search and define AI criteria</p>
+													</div>
+													<i class="ti ti-arrow-right text-link dark:text-darklink flex-shrink-0"></i>
+												</div>
+											</div>
+										</div>
+
+										<!-- Checklist Item 2 -->
+										<div class="checklist-item card border border-border dark:border-darkborder hover:shadow-md transition-shadow cursor-pointer" data-checklist-id="2" onclick="toggleChecklistItem(2)">
+											<div class="card-body p-4">
+												<div class="flex items-center gap-4">
+													<div class="w-6 h-6 rounded-full border-2 border-border dark:border-darkborder flex items-center justify-center flex-shrink-0 checklist-checkbox">
+														<i class="ti ti-check text-white text-xs hidden"></i>
+													</div>
+													<i class="ti ti-player-play text-2xl text-primary flex-shrink-0"></i>
+													<div class="flex-1">
+														<h3 class="font-semibold text-dark dark:text-white mb-1">Review Your Runs</h3>
+														<p class="text-sm text-link dark:text-darklink">Monitor capture progress and manage your search history</p>
+													</div>
+													<i class="ti ti-arrow-right text-link dark:text-darklink flex-shrink-0"></i>
+												</div>
+											</div>
+										</div>
+
+										<!-- Checklist Item 3 -->
+										<div class="checklist-item card border border-border dark:border-darkborder hover:shadow-md transition-shadow cursor-pointer" data-checklist-id="3" onclick="toggleChecklistItem(3)">
+											<div class="card-body p-4">
+												<div class="flex items-center gap-4">
+													<div class="w-6 h-6 rounded-full border-2 border-border dark:border-darkborder flex items-center justify-center flex-shrink-0 checklist-checkbox">
+														<i class="ti ti-check text-white text-xs hidden"></i>
+													</div>
+													<i class="ti ti-users text-2xl text-primary flex-shrink-0"></i>
+													<div class="flex-1">
+														<h3 class="font-semibold text-dark dark:text-white mb-1">Manage Your Leads</h3>
+														<p class="text-sm text-link dark:text-darklink">Filter, tag, and organize your captured leads</p>
+													</div>
+													<i class="ti ti-arrow-right text-link dark:text-darklink flex-shrink-0"></i>
+												</div>
+											</div>
+										</div>
+
+										<!-- Checklist Item 4 -->
+										<div class="checklist-item card border border-border dark:border-darkborder hover:shadow-md transition-shadow cursor-pointer" data-checklist-id="4" onclick="toggleChecklistItem(4)">
+											<div class="card-body p-4">
+												<div class="flex items-center gap-4">
+													<div class="w-6 h-6 rounded-full border-2 border-border dark:border-darkborder flex items-center justify-center flex-shrink-0 checklist-checkbox">
+														<i class="ti ti-check text-white text-xs hidden"></i>
+													</div>
+													<i class="ti ti-download text-2xl text-primary flex-shrink-0"></i>
+													<div class="flex-1">
+														<h3 class="font-semibold text-dark dark:text-white mb-1">Export to CRM</h3>
+														<p class="text-sm text-link dark:text-darklink">Send leads to your CRM or export as CSV files</p>
+													</div>
+													<i class="ti ti-arrow-right text-link dark:text-darklink flex-shrink-0"></i>
+												</div>
+											</div>
+										</div>
+
+										<!-- Checklist Item 5 -->
+										<div class="checklist-item card border border-border dark:border-darkborder hover:shadow-md transition-shadow cursor-pointer" data-checklist-id="5" onclick="toggleChecklistItem(5)">
+											<div class="card-body p-4">
+												<div class="flex items-center gap-4">
+													<div class="w-6 h-6 rounded-full border-2 border-border dark:border-darkborder flex items-center justify-center flex-shrink-0 checklist-checkbox">
+														<i class="ti ti-check text-white text-xs hidden"></i>
+													</div>
+													<i class="ti ti-plug text-2xl text-primary flex-shrink-0"></i>
+													<div class="flex-1">
+														<h3 class="font-semibold text-dark dark:text-white mb-1">Connect Integrations</h3>
+														<p class="text-sm text-link dark:text-darklink">Set up HubSpot, Salesforce, and other CRM connections</p>
+													</div>
+													<i class="ti ti-arrow-right text-link dark:text-darklink flex-shrink-0"></i>
+												</div>
+											</div>
+										</div>
+
+										<!-- Checklist Item 6 -->
+										<div class="checklist-item card border border-border dark:border-darkborder hover:shadow-md transition-shadow cursor-pointer" data-checklist-id="6" onclick="toggleChecklistItem(6)">
+											<div class="card-body p-4">
+												<div class="flex items-center gap-4">
+													<div class="w-6 h-6 rounded-full border-2 border-border dark:border-darkborder flex items-center justify-center flex-shrink-0 checklist-checkbox">
+														<i class="ti ti-check text-white text-xs hidden"></i>
+													</div>
+													<i class="ti ti-settings text-2xl text-primary flex-shrink-0"></i>
+													<div class="flex-1">
+														<h3 class="font-semibold text-dark dark:text-white mb-1">Configure Settings</h3>
+														<p class="text-sm text-link dark:text-darklink">Customize your workspace and set default preferences</p>
+													</div>
+													<i class="ti ti-arrow-right text-link dark:text-darklink flex-shrink-0"></i>
+												</div>
 											</div>
 										</div>
 									</div>
 								</div>
 							</div>
 
-							<!-- Empty State -->
-							<div id="empty-state" class="hidden">
-								<div class="card">
-									<div class="card-body text-center py-12">
-										<i class="ti ti-player-play text-6xl text-link dark:text-darklink mb-4 opacity-50"></i>
-										<h3 class="text-xl font-semibold text-dark dark:text-white mb-2">No runs found</h3>
-										<p class="text-link dark:text-darklink mb-6">You haven't created any capture runs yet.</p>
-										<a href="../new-capture/" class="btn btn-primary">
-											<i class="ti ti-circle-plus mr-2"></i> Create New Capture
+							<!-- Quick Actions Section -->
+							<div class="card mb-6">
+								<div class="card-body">
+									<h2 class="text-xl font-bold text-dark dark:text-white mb-6">Quick Actions</h2>
+									<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+										<a href="../new-capture/" class="card hover:shadow-lg transition-shadow cursor-pointer text-center p-6 border border-border dark:border-darkborder rounded-md">
+											<div class="flex flex-col items-center">
+												<i class="ti ti-circle-plus text-4xl text-primary mb-3"></i>
+												<span class="text-sm font-medium text-dark dark:text-white">Start New Capture</span>
+											</div>
+										</a>
+										<a href="../leads/" class="card hover:shadow-lg transition-shadow cursor-pointer text-center p-6 border border-border dark:border-darkborder rounded-md">
+											<div class="flex flex-col items-center">
+												<i class="ti ti-users text-4xl text-primary mb-3"></i>
+												<span class="text-sm font-medium text-dark dark:text-white">Browse Leads</span>
+											</div>
+										</a>
+										<a href="../integrations/" class="card hover:shadow-lg transition-shadow cursor-pointer text-center p-6 border border-border dark:border-darkborder rounded-md">
+											<div class="flex flex-col items-center">
+												<i class="ti ti-plug text-4xl text-primary mb-3"></i>
+												<span class="text-sm font-medium text-dark dark:text-white">Setup Integrations</span>
+											</div>
 										</a>
 									</div>
 								</div>
 							</div>
 
-							<!-- Runs List -->
-							<div id="runs-list" class="space-y-4">
-								<!-- Runs will be dynamically inserted here -->
+							<!-- FAQ Section -->
+							<div class="card mb-6">
+								<div class="card-body">
+									<h2 class="text-xl font-bold text-dark dark:text-white mb-6">Frequently Asked Questions</h2>
+									
+									<div class="space-y-2">
+										<!-- FAQ Item 1 -->
+										<div class="faq-item border-b border-border dark:border-darkborder pb-3">
+											<button onclick="toggleFAQ(1)" class="w-full flex items-center justify-between text-left py-2 cursor-pointer">
+												<span class="font-medium text-dark dark:text-white">What is Siftin?</span>
+												<i class="ti ti-chevron-down text-link dark:text-darklink faq-icon transition-transform"></i>
+											</button>
+											<div class="faq-answer hidden mt-2 text-sm text-link dark:text-darklink">
+												Siftin is a lead generation tool that helps you capture and manage LinkedIn leads. It allows you to search LinkedIn, define AI criteria to filter leads, and export them to your CRM or as CSV files.
+											</div>
+										</div>
+
+										<!-- FAQ Item 2 -->
+										<div class="faq-item border-b border-border dark:border-darkborder pb-3">
+											<button onclick="toggleFAQ(2)" class="w-full flex items-center justify-between text-left py-2 cursor-pointer">
+												<span class="font-medium text-dark dark:text-white">How does the AI criteria work?</span>
+												<i class="ti ti-chevron-down text-link dark:text-darklink faq-icon transition-transform"></i>
+											</button>
+											<div class="faq-answer hidden mt-2 text-sm text-link dark:text-darklink">
+												The AI criteria feature allows you to describe in natural language what kind of leads you're looking for. For example, "US-based SDR managers at B2B SaaS companies with 11-200 employees" will help filter leads that match your criteria.
+											</div>
+										</div>
+
+										<!-- FAQ Item 3 -->
+										<div class="faq-item border-b border-border dark:border-darkborder pb-3">
+											<button onclick="toggleFAQ(3)" class="w-full flex items-center justify-between text-left py-2 cursor-pointer">
+												<span class="font-medium text-dark dark:text-white">Can I export leads to my CRM?</span>
+												<i class="ti ti-chevron-down text-link dark:text-darklink faq-icon transition-transform"></i>
+											</button>
+											<div class="faq-answer hidden mt-2 text-sm text-link dark:text-darklink">
+												Yes! Siftin supports exporting leads to popular CRMs like HubSpot, Salesforce, and Pipedrive. You can also export leads as CSV files for use in other systems.
+											</div>
+										</div>
+
+										<!-- FAQ Item 4 -->
+										<div class="faq-item border-b border-border dark:border-darkborder pb-3">
+											<button onclick="toggleFAQ(4)" class="w-full flex items-center justify-between text-left py-2 cursor-pointer">
+												<span class="font-medium text-dark dark:text-white">How do I avoid duplicate leads?</span>
+												<i class="ti ti-chevron-down text-link dark:text-darklink faq-icon transition-transform"></i>
+											</button>
+											<div class="faq-answer hidden mt-2 text-sm text-link dark:text-darklink">
+												Siftin uses deduplication rules to identify and prevent duplicate leads. You can configure this in Settings, choosing to dedupe by email address, LinkedIn URL, or name + company combination.
+											</div>
+										</div>
+
+										<!-- FAQ Item 5 -->
+										<div class="faq-item border-b border-border dark:border-darkborder pb-3">
+											<button onclick="toggleFAQ(5)" class="w-full flex items-center justify-between text-left py-2 cursor-pointer">
+												<span class="font-medium text-dark dark:text-white">What LinkedIn URLs are supported?</span>
+												<i class="ti ti-chevron-down text-link dark:text-darklink faq-icon transition-transform"></i>
+											</button>
+											<div class="faq-answer hidden mt-2 text-sm text-link dark:text-darklink">
+												Siftin supports LinkedIn search results URLs that contain "/search/results/people". Profile URLs like /me or /in/ are not supported. Make sure you're using a search results URL from LinkedIn's people search.
+											</div>
+										</div>
+
+										<!-- FAQ Item 6 -->
+										<div class="faq-item pb-3">
+											<button onclick="toggleFAQ(6)" class="w-full flex items-center justify-between text-left py-2 cursor-pointer">
+												<span class="font-medium text-dark dark:text-white">Is this demo functional?</span>
+												<i class="ti ti-chevron-down text-link dark:text-darklink faq-icon transition-transform"></i>
+											</button>
+											<div class="faq-answer hidden mt-2 text-sm text-link dark:text-darklink">
+												This is a UI prototype demonstration. While the interface is fully functional, actual LinkedIn scraping and data collection would require proper implementation and compliance with LinkedIn's Terms of Service and applicable regulations.
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Need More Help Section -->
+							<div class="card">
+								<div class="card-body">
+									<div class="flex items-center gap-2 mb-4">
+										<i class="ti ti-message-circle-question text-primary text-xl"></i>
+										<h2 class="text-xl font-bold text-dark dark:text-white">Need More Help?</h2>
+									</div>
+									<p class="text-sm text-link dark:text-darklink mb-6">
+										Can't find what you're looking for? This is a demo interface, but in a real application you would have access to:
+									</p>
+									
+									<div class="space-y-4">
+										<div class="flex items-center gap-3">
+											<i class="ti ti-mail text-primary text-xl"></i>
+											<span class="text-sm text-dark dark:text-white">Email support at <a href="mailto:help@siftin.com" class="text-primary hover:underline">help@siftin.com</a></span>
+										</div>
+										<div class="flex items-center gap-3">
+											<i class="ti ti-message-circle text-primary text-xl"></i>
+											<span class="text-sm text-dark dark:text-white">Live chat support</span>
+										</div>
+										<div class="flex items-center gap-3">
+											<i class="ti ti-file-text text-primary text-xl"></i>
+											<span class="text-sm text-dark dark:text-white">Comprehensive documentation</span>
+										</div>
+										<div class="flex items-center gap-3">
+											<i class="ti ti-video text-primary text-xl"></i>
+											<span class="text-sm text-dark dark:text-white">Video tutorials and training</span>
+										</div>
+									</div>
+								</div>
 							</div>
 
 						</div>
@@ -114,276 +318,102 @@
 		@@include("../partials/scripts.html")
 		
 		<script>
-			// API Configuration
-			const API_BASE_URL = 'http://localhost:8000';
-			
-			// Helper function for API calls
-			async function apiCall(endpoint, method = 'GET', data = null) {
-				try {
-					const options = {
-						method,
-						headers: {
-							'Content-Type': 'application/json',
+			// Checklist state
+			let checklistItems = {
+				1: false,
+				2: false,
+				3: false,
+				4: false,
+				5: false,
+				6: false
+			};
+
+			// Load checklist state from localStorage
+			function loadChecklistState() {
+				const saved = localStorage.getItem('help-checklist');
+				if (saved) {
+					checklistItems = JSON.parse(saved);
+					updateChecklistUI();
+				}
+			}
+
+			// Save checklist state to localStorage
+			function saveChecklistState() {
+				localStorage.setItem('help-checklist', JSON.stringify(checklistItems));
+			}
+
+			// Toggle checklist item
+			function toggleChecklistItem(id) {
+				checklistItems[id] = !checklistItems[id];
+				updateChecklistUI();
+				saveChecklistState();
+			}
+
+			// Update checklist UI
+			function updateChecklistUI() {
+				let completed = 0;
+				
+				Object.keys(checklistItems).forEach(id => {
+					const item = document.querySelector(`[data-checklist-id="${id}"]`);
+					const checkbox = item?.querySelector('.checklist-checkbox');
+					const checkIcon = checkbox?.querySelector('.ti-check');
+					
+					if (checklistItems[id]) {
+						completed++;
+						if (checkbox) {
+							checkbox.classList.add('bg-primary', 'border-primary');
+							checkbox.classList.remove('border-border', 'dark:border-darkborder');
 						}
-					};
-					
-					if (data) {
-						options.body = JSON.stringify(data);
+						if (checkIcon) {
+							checkIcon.classList.remove('hidden');
+						}
+					} else {
+						if (checkbox) {
+							checkbox.classList.remove('bg-primary', 'border-primary');
+							checkbox.classList.add('border-border', 'dark:border-darkborder');
+						}
+						if (checkIcon) {
+							checkIcon.classList.add('hidden');
+						}
 					}
+				});
+				
+				// Update progress
+				const progress = (completed / 6) * 100;
+				document.getElementById('checklist-progress').textContent = `${completed} of 6 complete`;
+				document.getElementById('checklist-progress-bar').style.width = `${progress}%`;
+			}
+
+			// Toggle FAQ item
+			function toggleFAQ(id) {
+				const item = document.querySelectorAll('.faq-item')[id - 1];
+				const answer = item?.querySelector('.faq-answer');
+				const icon = item?.querySelector('.faq-icon');
+				
+				if (answer && icon) {
+					const isOpen = !answer.classList.contains('hidden');
 					
-					const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+					// Close all FAQs
+					document.querySelectorAll('.faq-answer').forEach(ans => ans.classList.add('hidden'));
+					document.querySelectorAll('.faq-icon').forEach(ic => {
+						ic.classList.remove('rotate-180');
+					});
 					
-					if (!response.ok) {
-						const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-						throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+					// Toggle current FAQ
+					if (isOpen) {
+						answer.classList.add('hidden');
+						icon.classList.remove('rotate-180');
+					} else {
+						answer.classList.remove('hidden');
+						icon.classList.add('rotate-180');
 					}
-					
-					return await response.json();
-				} catch (error) {
-					console.error('[API] Error:', error);
-					throw error;
 				}
 			}
 
-			// Show/hide loading indicator
-			function showLoading(show) {
-				const loadingEl = document.getElementById('loading-indicator');
-				if (loadingEl) {
-					loadingEl.classList.toggle('hidden', !show);
-				}
-			}
-
-			// Show error message
-			function showError(message) {
-				const errorEl = document.getElementById('error-message');
-				const errorText = document.getElementById('error-text');
-				if (errorEl && errorText) {
-					errorText.textContent = message;
-					errorEl.classList.remove('hidden');
-				}
-			}
-
-			// Hide error message
-			function hideError() {
-				const errorEl = document.getElementById('error-message');
-				if (errorEl) {
-					errorEl.classList.add('hidden');
-				}
-			}
-
-			// Format date
-			function formatDate(dateString) {
-				if (!dateString) return 'N/A';
-				const date = new Date(dateString);
-				return date.toLocaleString();
-			}
-
-			// Format LinkedIn URL for display
-			function formatLinkedInUrl(url) {
-				if (!url) return 'N/A';
-				if (url.length > 60) {
-					return url.substring(0, 57) + '...';
-				}
-				return url;
-			}
-
-			// Load and display runs
-			async function loadRuns() {
-				showLoading(true);
-				hideError();
-				
-				try {
-					const response = await apiCall('/api/capture/runs');
-					const runs = response.runs || [];
-					
-					showLoading(false);
-					
-					const runsListEl = document.getElementById('runs-list');
-					const emptyStateEl = document.getElementById('empty-state');
-					
-					if (runs.length === 0) {
-						if (runsListEl) runsListEl.innerHTML = '';
-						if (emptyStateEl) emptyStateEl.classList.remove('hidden');
-						return;
-					}
-					
-					if (emptyStateEl) emptyStateEl.classList.add('hidden');
-					
-					if (runsListEl) {
-						runsListEl.innerHTML = runs.map(run => `
-							<div class="card hover:shadow-lg transition-shadow" data-run-id="${run.id}">
-								<div class="card-body">
-									<div class="flex items-start justify-between">
-										<div class="flex-1">
-											<div class="flex items-center gap-3 mb-3">
-												<h3 class="text-xl font-semibold text-dark dark:text-white">${escapeHtml(run.run_label)}</h3>
-												<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightprimary dark:bg-darkprimary text-primary">
-													ID: ${run.id}
-												</span>
-												${getStatusBadge(run.status)}
-											</div>
-											${run.error_message ? `
-											<div class="mb-3 p-3 rounded-md bg-lightdanger dark:bg-darkdanger border border-danger">
-												<p class="text-sm text-danger font-semibold mb-1">Error:</p>
-												<p class="text-sm text-danger">${escapeHtml(run.error_message)}</p>
-											</div>
-											` : ''}
-											
-											<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">LinkedIn URL</p>
-													<a href="${escapeHtml(run.linkedin_url)}" target="_blank" class="text-sm text-primary hover:underline break-all">
-														${escapeHtml(formatLinkedInUrl(run.linkedin_url))}
-													</a>
-												</div>
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">AI Criteria</p>
-													<p class="text-sm text-dark dark:text-white">${escapeHtml(run.ai_criteria || 'N/A')}</p>
-												</div>
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">Created</p>
-													<p class="text-sm text-dark dark:text-white">${formatDate(run.created_at)}</p>
-												</div>
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">Leads</p>
-													<p class="text-sm text-dark dark:text-white">
-														<span class="font-semibold">${run.total_leads}</span> total
-														<span class="mx-2">•</span>
-														<span class="font-semibold text-primary">${run.selected_leads}</span> selected
-													</p>
-												</div>
-											</div>
-										</div>
-										
-										<div class="flex flex-col gap-2 ml-4">
-											<button onclick="viewRun(${run.id})" class="btn btn-outline btn-sm flex items-center">
-												<i class="ti ti-eye mr-2"></i> View
-											</button>
-											${run.status === 'success' && run.total_leads > 0 ? `
-											<button onclick="exportRun(${run.id})" class="btn btn-primary btn-sm flex items-center">
-												<i class="ti ti-download mr-2"></i> Export
-											</button>
-											` : ''}
-											<button onclick="deleteRun(${run.id})" class="btn btn-outline btn-sm text-danger hover:bg-lightdanger dark:hover:bg-darkdanger flex items-center">
-												<i class="ti ti-trash mr-2"></i> Delete
-											</button>
-										</div>
-									</div>
-								</div>
-							</div>
-						`).join('');
-					}
-				} catch (error) {
-					showLoading(false);
-					showError(error.message || 'Failed to load runs');
-					console.error('[Runs] Error loading runs:', error);
-				}
-			}
-
-			// View run details
-			async function viewRun(runId) {
-				try {
-					const run = await apiCall(`/api/capture/runs/${runId}`);
-					
-					// Create modal or navigate to detail page
-					// For now, show in alert (you can enhance this with a modal)
-					const message = `
-Run: ${run.run_label}
-LinkedIn URL: ${run.linkedin_url}
-AI Criteria: ${run.ai_criteria || 'N/A'}
-Created: ${formatDate(run.created_at)}
-Total Leads: ${run.total_leads}
-Selected Leads: ${run.selected_leads}
-					`.trim();
-					
-					alert(message);
-				} catch (error) {
-					showError(error.message || 'Failed to load run details');
-				}
-			}
-
-			// Export run
-			async function exportRun(runId) {
-				try {
-					showLoading(true);
-					const response = await apiCall(`/api/capture/runs/${runId}/export?selected_only=true`, 'POST');
-					
-					if (response.download_url) {
-						window.location.href = `${API_BASE_URL}${response.download_url}`;
-					}
-					
-					showLoading(false);
-				} catch (error) {
-					showLoading(false);
-					showError(error.message || 'Failed to export run');
-				}
-			}
-
-			// Delete run
-			async function deleteRun(runId) {
-				if (!confirm('Are you sure you want to delete this run? This action cannot be undone.')) {
-					return;
-				}
-				
-				try {
-					showLoading(true);
-					await apiCall(`/api/capture/runs/${runId}`, 'DELETE');
-					showLoading(false);
-					loadRuns(); // Reload the list
-				} catch (error) {
-					showLoading(false);
-					showError(error.message || 'Failed to delete run');
-				}
-			}
-
-			// Refresh runs
-			function refreshRuns() {
-				loadRuns();
-			}
-
-			// Get status badge HTML
-			function getStatusBadge(status) {
-				if (!status) status = 'success';
-				const statusLower = status.toLowerCase();
-				
-				let bgClass = 'bg-lightprimary dark:bg-darkprimary';
-				let textClass = 'text-success';
-				let icon = 'ti-check';
-				let label = 'Success';
-				
-				if (statusLower === 'failed') {
-					bgClass = 'bg-lightdanger dark:bg-darkdanger';
-					textClass = 'text-danger';
-					icon = 'ti-x';
-					label = 'Failed';
-				} else if (statusLower === 'partial') {
-					bgClass = 'bg-lightwarning dark:bg-darkwarning';
-					textClass = 'text-warning';
-					icon = 'ti-alert-triangle';
-					label = 'Partial';
-				}
-				
-				return `
-					<span class="px-2 py-1 text-xs font-medium rounded-md ${bgClass} ${textClass} flex items-center gap-1">
-						<i class="ti ${icon}"></i>
-						${label}
-					</span>
-				`;
-			}
-
-			// Escape HTML to prevent XSS
-			function escapeHtml(text) {
-				if (!text) return '';
-				const div = document.createElement('div');
-				div.textContent = text;
-				return div.innerHTML;
-			}
-
-			// Load runs on page load
+			// Initialize on page load
 			document.addEventListener('DOMContentLoaded', function() {
-				loadRuns();
+				loadChecklistState();
 			});
 		</script>
 	</body>
 </html>
-
