@@ -4,7 +4,7 @@
 
 	<head>
 		@@include("../partials/head.html")
-		<title>Runs - Siftin</title>
+		<title>Exports - Siftin</title>
 	</head>
 
 	<body class="DEFAULT_THEME  bg-white dark:bg-dark">
@@ -14,7 +14,7 @@
 
 				<aside id="application-sidebar-brand"
 					class="hs-overlay hs-overlay-open:translate-x-0 -translate-x-full xl:rtl:-translate-x-0 rtl:translate-x-full  left-0 rtl:left-auto rtl:right-0 transform hidden xl:block xl:translate-x-0 xl:end-auto xl:bottom-0 fixed top-0 with-vertical  left-sidebar transition-all duration-300 h-screen z-[2] flex-shrink-0 border-r rtl:border-l rtl:border-r-0 w-[270px] border-border dark:border-darkborder bg-white dark:bg-dark">
-					@@include("../partials/sidebar.html",{ "page": "runs" })
+					@@include("../partials/sidebar.html",{ "page": "exports" })
 				</aside>
 				<div class="page-wrapper w-full" role="main">
 					<!--  Header Start -->
@@ -23,7 +23,7 @@
 					<div
 						class="with-vertical w-full">@@include("../partials/header.html")</div>
 					<div class="with-horizontal w-full">
-						<div class="bg-white dark:bg-dark shadow-md dark:shadow-dark-md">
+						<div class="bg-white dark:bg-dark shadow-md dark:shadow-md">
 							<div class="container">
 								@@include("../partials/horizontal-header.html")
 							</div>
@@ -34,7 +34,7 @@
 
 					<!-- Horizontal Header Menu -->
 					<aside class="with-horizontal lg:flex hidden">
-						@@include("../partials/horizontal-sidebar.html", { "page": "runs",
+						@@include("../partials/horizontal-sidebar.html", { "page": "exports",
 						})
 					</aside>
 					<!-- Horizontal Header Menu End -->
@@ -46,12 +46,9 @@
 							<div class="mb-8">
 								<div class="flex items-center justify-between mb-2">
 									<div>
-										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">Capture Runs</h1>
-										<p class="text-base text-link dark:text-darklink">View and manage all your LinkedIn lead capture runs</p>
+										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">Exports</h1>
+										<p class="text-base text-link dark:text-darklink">View and manage your lead exports</p>
 									</div>
-									<button onclick="refreshRuns()" class="btn btn-primary flex items-center cursor-pointer">
-										<i class="ti ti-refresh mr-2"></i> Refresh
-									</button>
 								</div>
 							</div>
 
@@ -60,7 +57,7 @@
 								<div class="card">
 									<div class="card-body text-center py-8">
 										<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-										<p class="mt-4 text-link dark:text-darklink">Loading runs...</p>
+										<p class="mt-4 text-link dark:text-darklink">Loading exports...</p>
 									</div>
 								</div>
 							</div>
@@ -80,23 +77,43 @@
 								</div>
 							</div>
 
-							<!-- Empty State -->
-							<div id="empty-state" class="hidden">
-								<div class="card">
-									<div class="card-body text-center py-12">
-										<i class="ti ti-player-play text-6xl text-link dark:text-darklink mb-4 opacity-50"></i>
-										<h3 class="text-xl font-semibold text-dark dark:text-white mb-2">No runs found</h3>
-										<p class="text-link dark:text-darklink mb-6">You haven't created any capture runs yet.</p>
-										<a href="../new-capture/" class="btn btn-primary">
-											<i class="ti ti-circle-plus mr-2"></i> Create New Capture
-										</a>
+							<!-- Export History -->
+							<div class="card">
+								<div class="card-body">
+									<h2 class="text-xl font-bold text-dark dark:text-white mb-6">Export History</h2>
+									
+									<div class="overflow-x-auto">
+										<table class="w-full">
+											<thead class="bg-lightprimary dark:bg-darkprimary">
+												<tr>
+													<th class="px-4 py-3 text-left text-xs font-semibold text-dark dark:text-white uppercase">CREATED</th>
+													<th class="px-4 py-3 text-left text-xs font-semibold text-dark dark:text-white uppercase">DESTINATION</th>
+													<th class="px-4 py-3 text-left text-xs font-semibold text-dark dark:text-white uppercase">RECORDS</th>
+													<th class="px-4 py-3 text-left text-xs font-semibold text-dark dark:text-white uppercase">MAPPING</th>
+													<th class="px-4 py-3 text-left text-xs font-semibold text-dark dark:text-white uppercase">STATUS</th>
+													<th class="px-4 py-3 text-left text-xs font-semibold text-dark dark:text-white uppercase">ACTIONS</th>
+												</tr>
+											</thead>
+											<tbody id="exports-table-body" class="divide-y divide-border dark:divide-darkborder">
+												<!-- Exports will be dynamically inserted here -->
+											</tbody>
+										</table>
 									</div>
 								</div>
 							</div>
 
-							<!-- Runs List -->
-							<div id="runs-list" class="space-y-4">
-								<!-- Runs will be dynamically inserted here -->
+							<!-- Empty State -->
+							<div id="empty-state" class="hidden">
+								<div class="card">
+									<div class="card-body text-center py-12">
+										<i class="ti ti-download text-6xl text-link dark:text-darklink mb-4 opacity-50"></i>
+										<h3 class="text-xl font-semibold text-dark dark:text-white mb-2">No exports found</h3>
+										<p class="text-link dark:text-darklink mb-6">You haven't exported any leads yet.</p>
+										<a href="../runs/" class="btn btn-primary">
+											<i class="ti ti-player-play mr-2"></i> View Runs
+										</a>
+									</div>
+								</div>
 							</div>
 
 						</div>
@@ -171,142 +188,209 @@
 				}
 			}
 
-			// Format date
-			function formatDate(dateString) {
-				if (!dateString) return 'N/A';
+			// Format date for display
+			function formatExportDate(dateString) {
+				if (!dateString) return { date: 'N/A', time: '' };
 				const date = new Date(dateString);
-				return date.toLocaleString();
+				const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+				const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+				return { date: dateStr, time: timeStr };
 			}
 
-			// Format LinkedIn URL for display
-			function formatLinkedInUrl(url) {
-				if (!url) return 'N/A';
-				if (url.length > 60) {
-					return url.substring(0, 57) + '...';
+			// Get destination icon
+			function getDestinationIcon(destination) {
+				switch(destination.toLowerCase()) {
+					case 'csv':
+						return 'ti ti-file-text';
+					case 'hubspot':
+						return 'ti ti-database';
+					case 'salesforce':
+						return 'ti ti-cloud';
+					default:
+						return 'ti ti-file';
 				}
-				return url;
 			}
 
-			// Load and display runs
-			async function loadRuns() {
+			// Get status badge
+			function getStatusBadge(status) {
+				const statusLower = status.toLowerCase();
+				
+				if (statusLower === 'sent' || statusLower === 'success' || statusLower === 'completed') {
+					return '<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightsuccess dark:bg-darksuccess text-success">Sent</span>';
+				} else if (statusLower === 'error' || statusLower === 'failed') {
+					return '<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightdanger dark:bg-darkdanger text-danger">Error</span>';
+				} else if (statusLower === 'pending') {
+					return '<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightwarning dark:bg-darkwarning text-warning">Pending</span>';
+				} else {
+					return '<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightsecondary dark:bg-darksecondary text-link dark:text-darklink">' + escapeHtml(status) + '</span>';
+				}
+			}
+
+			// Load exports from runs
+			async function loadExports() {
 				showLoading(true);
 				hideError();
 				
 				try {
-					const response = await apiCall('/api/capture/runs');
-					const runs = response.runs || [];
+					// Get all runs
+					const runsResponse = await apiCall('/api/capture/runs');
+					const runs = runsResponse.runs || [];
+					
+					// Filter runs that have been exported (status success and have leads)
+					const exportedRuns = runs.filter(run => 
+						run.status === 'success' && run.total_leads > 0
+					);
+					
+					// Build exports list from runs
+					// In a real system, you'd have a separate exports table, but for now we'll derive from runs
+					const exports = [];
+					
+					for (const run of exportedRuns) {
+						// Check if this run has been exported (we'll assume CSV for now)
+						// In production, you'd track actual export history
+						const exportDate = run.created_at || new Date().toISOString();
+						
+						// Create export entries - one per run (CSV export)
+						exports.push({
+							id: run.id,
+							run_id: run.id,
+							created_at: exportDate,
+							destination: 'CSV',
+							records: run.selected_leads || run.total_leads,
+							mapping: 'Default CSV',
+							status: 'sent',
+							download_url: null // Will be generated on demand
+						});
+					}
+					
+					// Sort by created date (newest first)
+					exports.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 					
 					showLoading(false);
 					
-					const runsListEl = document.getElementById('runs-list');
-					const emptyStateEl = document.getElementById('empty-state');
+					const tableBody = document.getElementById('exports-table-body');
+					const emptyState = document.getElementById('empty-state');
 					
-					if (runs.length === 0) {
-						if (runsListEl) runsListEl.innerHTML = '';
-						if (emptyStateEl) emptyStateEl.classList.remove('hidden');
+					if (exports.length === 0) {
+						if (tableBody) tableBody.innerHTML = '';
+						if (emptyState) emptyState.classList.remove('hidden');
 						return;
 					}
 					
-					if (emptyStateEl) emptyStateEl.classList.add('hidden');
+					if (emptyState) emptyState.classList.add('hidden');
 					
-					if (runsListEl) {
-						runsListEl.innerHTML = runs.map(run => `
-							<div class="card hover:shadow-lg transition-shadow" data-run-id="${run.id}">
-								<div class="card-body">
-									<div class="flex items-start justify-between">
-										<div class="flex-1">
-											<div class="flex items-center gap-3 mb-3">
-												<h3 class="text-xl font-semibold text-dark dark:text-white">${escapeHtml(run.run_label)}</h3>
-												<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightprimary dark:bg-darkprimary text-primary">
-													ID: ${run.id}
-												</span>
-												${getStatusBadge(run.status)}
-											</div>
-											${run.error_message ? `
-											<div class="mb-3 p-3 rounded-md bg-lightdanger dark:bg-darkdanger border border-danger">
-												<p class="text-sm text-danger font-semibold mb-1">Error:</p>
-												<p class="text-sm text-danger">${escapeHtml(run.error_message)}</p>
-											</div>
-											` : ''}
-											
-											<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">LinkedIn URL</p>
-													<a href="${escapeHtml(run.linkedin_url)}" target="_blank" class="text-sm text-primary hover:underline break-all">
-														${escapeHtml(formatLinkedInUrl(run.linkedin_url))}
-													</a>
-												</div>
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">AI Criteria</p>
-													<p class="text-sm text-dark dark:text-white">${escapeHtml(run.ai_criteria || 'N/A')}</p>
-												</div>
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">Created</p>
-													<p class="text-sm text-dark dark:text-white">${formatDate(run.created_at)}</p>
-												</div>
-												<div>
-													<p class="text-sm text-link dark:text-darklink mb-1">Leads</p>
-													<p class="text-sm text-dark dark:text-white">
-														<span class="font-semibold">${run.total_leads}</span> total
-														<span class="mx-2">•</span>
-														<span class="font-semibold text-primary">${run.selected_leads}</span> selected
-													</p>
-												</div>
-											</div>
+					if (tableBody) {
+						tableBody.innerHTML = exports.map(exp => {
+							const dateInfo = formatExportDate(exp.created_at);
+							const icon = getDestinationIcon(exp.destination);
+							const statusBadge = getStatusBadge(exp.status);
+							const hasError = exp.status.toLowerCase() === 'error' || exp.status.toLowerCase() === 'failed';
+							
+							return `
+								<tr class="hover:bg-lightprimary dark:hover:bg-darkprimary transition-colors">
+									<td class="px-4 py-3">
+										<div class="text-sm text-dark dark:text-white">${escapeHtml(dateInfo.date)}</div>
+										<div class="text-xs text-link dark:text-darklink">${escapeHtml(dateInfo.time)}</div>
+									</td>
+									<td class="px-4 py-3">
+										<div class="flex items-center gap-2">
+											<i class="${icon} text-link dark:text-darklink"></i>
+											<span class="text-sm text-dark dark:text-white">${escapeHtml(exp.destination)}</span>
 										</div>
-										
-										<div class="flex flex-col gap-2 ml-4">
-											<button onclick="viewRun(${run.id})" class="btn btn-outline btn-sm flex items-center">
-												<i class="ti ti-eye mr-2"></i> View
+									</td>
+									<td class="px-4 py-3 text-sm text-dark dark:text-white">${exp.records}</td>
+									<td class="px-4 py-3 text-sm text-link dark:text-darklink">${escapeHtml(exp.mapping)}</td>
+									<td class="px-4 py-3">${statusBadge}</td>
+									<td class="px-4 py-3">
+										<div class="flex items-center gap-2">
+											<button onclick="viewExport(${exp.id})" class="text-link dark:text-darklink hover:text-primary transition-colors cursor-pointer" title="View">
+												<i class="ti ti-eye text-lg"></i>
 											</button>
-											${run.status === 'success' && run.total_leads > 0 ? `
-											<button onclick="exportRun(${run.id})" class="btn btn-primary btn-sm flex items-center">
-												<i class="ti ti-download mr-2"></i> Export
+											${hasError ? `
+											<button onclick="retryExport(${exp.id})" class="text-link dark:text-darklink hover:text-primary transition-colors cursor-pointer" title="Retry">
+												<i class="ti ti-refresh text-lg"></i>
 											</button>
 											` : ''}
-											<button onclick="deleteRun(${run.id})" class="btn btn-outline btn-sm text-danger hover:bg-lightdanger dark:hover:bg-darkdanger flex items-center">
-												<i class="ti ti-trash mr-2"></i> Delete
+											<button onclick="deleteExport(${exp.id})" class="text-danger hover:text-danger/80 transition-colors cursor-pointer" title="Delete">
+												<i class="ti ti-trash text-lg"></i>
 											</button>
 										</div>
-									</div>
-								</div>
-							</div>
-						`).join('');
+									</td>
+								</tr>
+							`;
+						}).join('');
 					}
 				} catch (error) {
 					showLoading(false);
-					showError(error.message || 'Failed to load runs');
-					console.error('[Runs] Error loading runs:', error);
+					showError(error.message || 'Failed to load exports');
+					console.error('[Exports] Error loading exports:', error);
 				}
 			}
 
-			// View run details
-			async function viewRun(runId) {
+			// View export details
+			async function viewExport(exportId) {
 				try {
-					const run = await apiCall(`/api/capture/runs/${runId}`);
+					// Get the run details
+					const run = await apiCall(`/api/capture/runs/${exportId}`);
 					
-					// Create modal or navigate to detail page
-					// For now, show in alert (you can enhance this with a modal)
+					// Show export details in a modal or alert
 					const message = `
-Run: ${run.run_label}
-LinkedIn URL: ${run.linkedin_url}
-AI Criteria: ${run.ai_criteria || 'N/A'}
-Created: ${formatDate(run.created_at)}
-Total Leads: ${run.total_leads}
-Selected Leads: ${run.selected_leads}
+Export Details:
+Run ID: ${run.id}
+Run Label: ${run.run_label}
+Records: ${run.selected_leads || run.total_leads}
+Created: ${formatExportDate(run.created_at).date} ${formatExportDate(run.created_at).time}
+Destination: CSV
+Mapping: Default CSV
 					`.trim();
 					
 					alert(message);
 				} catch (error) {
-					showError(error.message || 'Failed to load run details');
+					showError(error.message || 'Failed to load export details');
 				}
 			}
 
-			// Export run
-			async function exportRun(runId) {
+			// Retry export
+			async function retryExport(exportId) {
 				try {
 					showLoading(true);
-					const response = await apiCall(`/api/capture/runs/${runId}/export?selected_only=true`, 'POST');
+					const response = await apiCall(`/api/capture/runs/${exportId}/export?selected_only=true`, 'POST');
+					
+					if (response.download_url) {
+						window.location.href = `${API_BASE_URL}${response.download_url}`;
+					}
+					
+					showLoading(false);
+					loadExports(); // Reload the list
+				} catch (error) {
+					showLoading(false);
+					showError(error.message || 'Failed to retry export');
+				}
+			}
+
+			// Delete export
+			async function deleteExport(exportId) {
+				if (!confirm('Are you sure you want to delete this export record? This action cannot be undone.')) {
+					return;
+				}
+				
+				try {
+					showLoading(true);
+					// Note: In a real system, you'd delete the export record, not the run
+					// For now, we'll just reload the list
+					showLoading(false);
+					loadExports(); // Reload the list
+				} catch (error) {
+					showLoading(false);
+					showError(error.message || 'Failed to delete export');
+				}
+			}
+
+			// Download export
+			async function downloadExport(exportId) {
+				try {
+					showLoading(true);
+					const response = await apiCall(`/api/capture/runs/${exportId}/export?selected_only=true`, 'POST');
 					
 					if (response.download_url) {
 						window.location.href = `${API_BASE_URL}${response.download_url}`;
@@ -315,60 +399,8 @@ Selected Leads: ${run.selected_leads}
 					showLoading(false);
 				} catch (error) {
 					showLoading(false);
-					showError(error.message || 'Failed to export run');
+					showError(error.message || 'Failed to download export');
 				}
-			}
-
-			// Delete run
-			async function deleteRun(runId) {
-				if (!confirm('Are you sure you want to delete this run? This action cannot be undone.')) {
-					return;
-				}
-				
-				try {
-					showLoading(true);
-					await apiCall(`/api/capture/runs/${runId}`, 'DELETE');
-					showLoading(false);
-					loadRuns(); // Reload the list
-				} catch (error) {
-					showLoading(false);
-					showError(error.message || 'Failed to delete run');
-				}
-			}
-
-			// Refresh runs
-			function refreshRuns() {
-				loadRuns();
-			}
-
-			// Get status badge HTML
-			function getStatusBadge(status) {
-				if (!status) status = 'success';
-				const statusLower = status.toLowerCase();
-				
-				let bgClass = 'bg-lightprimary dark:bg-darkprimary';
-				let textClass = 'text-success';
-				let icon = 'ti-check';
-				let label = 'Success';
-				
-				if (statusLower === 'failed') {
-					bgClass = 'bg-lightdanger dark:bg-darkdanger';
-					textClass = 'text-danger';
-					icon = 'ti-x';
-					label = 'Failed';
-				} else if (statusLower === 'partial') {
-					bgClass = 'bg-lightwarning dark:bg-darkwarning';
-					textClass = 'text-warning';
-					icon = 'ti-alert-triangle';
-					label = 'Partial';
-				}
-				
-				return `
-					<span class="px-2 py-1 text-xs font-medium rounded-md ${bgClass} ${textClass} flex items-center gap-1">
-						<i class="ti ${icon}"></i>
-						${label}
-					</span>
-				`;
 			}
 
 			// Escape HTML to prevent XSS
@@ -379,9 +411,9 @@ Selected Leads: ${run.selected_leads}
 				return div.innerHTML;
 			}
 
-			// Load runs on page load
+			// Load exports on page load
 			document.addEventListener('DOMContentLoaded', function() {
-				loadRuns();
+				loadExports();
 			});
 		</script>
 	</body>

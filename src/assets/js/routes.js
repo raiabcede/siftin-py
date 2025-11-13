@@ -69,7 +69,7 @@ const Routes = {
     {
       id: 'exports',
       page: 'exports',
-      path: '/index.html',
+      path: '/exports/',
       title: 'Exports',
       icon: 'ti-download',
       active: false
