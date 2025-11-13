@@ -77,7 +77,7 @@ const Routes = {
     {
       id: 'integrations',
       page: 'integrations',
-      path: '/index.html',
+      path: '/integrations/',
       title: 'Integrations',
       icon: 'ti-plug',
       active: false
