@@ -1,23 +1,31 @@
 """
 FastAPI server for LinkedIn Lead Capture
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import urllib.parse
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import json
 import subprocess
 import platform
 import socket
 import time
+from auth import (
+    verify_password, 
+    get_password_hash, 
+    create_access_token, 
+    get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
+from database import create_user, get_user_by_email, get_user_by_id
 
 # Load environment variables from .env file
 load_dotenv()
@@ -212,6 +220,132 @@ def extract_keywords_from_url(linkedin_url: str) -> str:
 async def root():
     """Health check endpoint"""
     return {"status": "ok", "message": "LinkedIn Lead Capture API is running"}
+
+
+# Authentication models
+class UserRegister(BaseModel):
+    email: EmailStr
+    full_name: str
+    password: str
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    created_at: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# Authentication endpoints
+@app.post("/api/auth/register", response_model=TokenResponse)
+async def register(user_data: UserRegister):
+    """Register a new user"""
+    # Check if user already exists
+    existing_user = get_user_by_email(user_data.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Hash password and create user
+    hashed_password = get_password_hash(user_data.password)
+    try:
+        user_id = create_user(
+            email=user_data.email,
+            full_name=user_data.full_name,
+            hashed_password=hashed_password
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
+    # Get created user
+    user = get_user_by_id(user_id)
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_id},
+        expires_delta=access_token_expires
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user['id'],
+            email=user['email'],
+            full_name=user['full_name'],
+            created_at=user['created_at']
+        )
+    )
+
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login(credentials: UserLogin):
+    """Login and get access token"""
+    # Get user by email
+    user = get_user_by_email(credentials.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
+        )
+    
+    # Verify password
+    if not verify_password(credentials.password, user['hashed_password']):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
+        )
+    
+    # Check if user is active
+    if not user.get('is_active', 1):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user['id']},
+        expires_delta=access_token_expires
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user['id'],
+            email=user['email'],
+            full_name=user['full_name'],
+            created_at=user['created_at']
+        )
+    )
+
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Get current authenticated user information"""
+    return UserResponse(
+        id=current_user['id'],
+        email=current_user['email'],
+        full_name=current_user['full_name'],
+        created_at=current_user['created_at']
+    )
 
 
 # Cache for LinkedIn auth status (to avoid repeated browser launches)
@@ -685,10 +819,12 @@ async def find_leads(request: FindLeadsRequest):
 
 
 @app.post("/api/capture/save-to-library", response_model=SaveResponse)
-async def save_to_library(request: SaveToLibraryRequest):
+async def save_to_library(request: SaveToLibraryRequest, current_user: dict = Depends(get_current_user)):
     """Save selected leads to library (same as save-run)"""
     try:
         from database import create_run
+        
+        user_id = current_user['id']
         
         # Check if leads data is provided
         if not request.leads:
@@ -700,7 +836,7 @@ async def save_to_library(request: SaveToLibraryRequest):
         # Convert Lead models to dictionaries
         leads_data = [lead.dict() for lead in request.leads]
         
-        # Save to database (same as save-run)
+        # Save to database (same as save-run) with user_id
         run_id = create_run(
             run_label=request.run_label,
             linkedin_url=request.linkedin_url,
@@ -708,7 +844,8 @@ async def save_to_library(request: SaveToLibraryRequest):
             leads=leads_data,
             selected_lead_ids=request.selected_lead_ids,
             status=request.status or 'success',
-            error_message=request.error_message
+            error_message=request.error_message,
+            user_id=user_id
         )
         
         print(f"[API] ✓ Saved run {run_id} to library")
@@ -728,10 +865,12 @@ async def save_to_library(request: SaveToLibraryRequest):
 
 
 @app.post("/api/capture/save-run", response_model=SaveResponse)
-async def save_run(request: SaveToLibraryRequest):
+async def save_run(request: SaveToLibraryRequest, current_user: dict = Depends(get_current_user)):
     """Save a capture run to database, or update existing run if run_id is provided"""
     try:
         from database import create_run, update_run_selections
+        
+        user_id = current_user['id']
         
         # If run_id is provided, update existing run's selections
         if request.run_id:
@@ -757,7 +896,7 @@ async def save_run(request: SaveToLibraryRequest):
         # Convert Lead models to dictionaries
         leads_data = [lead.dict() for lead in request.leads]
         
-        # Save to database
+        # Save to database with user_id
         run_id = create_run(
             run_label=request.run_label,
             linkedin_url=request.linkedin_url,
@@ -765,7 +904,8 @@ async def save_run(request: SaveToLibraryRequest):
             leads=leads_data,
             selected_lead_ids=request.selected_lead_ids,
             status=request.status or 'success',
-            error_message=request.error_message
+            error_message=request.error_message,
+            user_id=user_id
         )
         
         print(f"[API] ✓ Saved run {run_id} to database")
@@ -927,12 +1067,13 @@ class RunsListResponse(BaseModel):
 
 
 @app.get("/api/capture/runs", response_model=RunsListResponse)
-async def get_runs(limit: int = 100, offset: int = 0):
-    """Get all saved runs"""
+async def get_runs(limit: int = 100, offset: int = 0, current_user: dict = Depends(get_current_user)):
+    """Get all saved runs for the authenticated user"""
     try:
         from database import get_all_runs
         
-        runs = get_all_runs(limit=limit, offset=offset)
+        user_id = current_user['id']
+        runs = get_all_runs(limit=limit, offset=offset, user_id=user_id)
         
         run_summaries = []
         for run in runs:

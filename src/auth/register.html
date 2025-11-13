@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-color-theme="Green_Theme" class="selected"
+	data-layout="vertical" data-boxed-layout="boxed" data-card="shadow">
+<head>
+	@@include("../partials/head.html")
+	<title>Siftin - Register</title>
+</head>
+
+<body class="DEFAULT_THEME bg-white dark:bg-dark">
+
+	<main>
+		<!--start the project-->
+		<div id="main-wrapper" class="flex">
+			<!-- Main Content -->
+			<main class="h-screen w-full">
+				<div class="h-screen w-full">
+					<div class="xl:flex justify-center w-full">
+						<div class="xl:w-4/6 w-full">
+							<div class="card-body p-5 bg-lightprimary xl:h-screen">
+								@@include("../partials/logo-sidebar.html")
+								<div class="h-n80 xl:flex hidden justify-center items-center">
+									<img src="@@webRoot/assets/images/backgrounds/login-security.svg" alt=""
+										class="img-fluid" width="500">
+								</div>
+							</div>
+						</div>
+						<div class="xl:w-2/6 w-full">
+							<div class="card-body flex justify-center items-center bg-base-100 h-screen">
+								<div class="max-w-[400px] sm:px-6 w-full">
+									<h2 class="font-bold text-2xl text-dark dark:text-white">Create Account</h2>
+									<p class="mb-7 text-link dark:text-darklink">Join Siftin and start generating leads</p>
+									<div class="grid grid-cols-2 gap-6 mb-7">
+										<a href="javascript:void(0)"
+											class="border border-border dark:border-darkborder rounded-md py-2.5 px-3 justify-center flex items-center hover:text-primary dark:hover:text-primary text-link dark:text-darklink">
+											<img src="@@webRoot/assets/images/svgs/google-icon.svg" alt="" class="me-2"
+												width="18" height="18" style="width: 18px; height: 18px; object-fit: contain;">
+											<span class="shrink-0">with Google</span>
+										</a>
+										<a href="javascript:void(0)"
+											class="border border-border dark:border-darkborder rounded-md py-2.5 px-3 justify-center flex items-center hover:text-primary dark:hover:text-primary text-link dark:text-darklink">
+											<img src="@@webRoot/assets/images/svgs/facebook-icon.svg" alt=""
+												class="me-2" width="18" height="18" style="width: 18px; height: 18px; object-fit: contain;">
+											<span class="shrink-0">with FB</span>
+										</a>
+									</div>
+									<div class="flex items-center text-base before:flex-[1_1_0%] before:border-t before:border-border before:me-6 after:flex-[1_1_0%] after:border-t after:border-border after:ms-6 dark:text-white dark:before:border-darkborder dark:after:border-darkborder text-link dark:text-darklink">or sign up with</div>
+
+									<form id="register-form">
+										<div class="flex flex-col gap-4 mt-7">
+											<div>
+												<label class="text-dark dark:text-white font-semibold mb-2 block">Full Name</label>
+												<input type="text" id="full_name" name="full_name" class="form-control py-2" required />
+											</div>
+											<div>
+												<label class="text-dark dark:text-white font-semibold mb-2 block">Email</label>
+												<input type="email" id="email" name="email" class="form-control py-2" required />
+											</div>
+											<div>
+												<label class="text-dark dark:text-white font-semibold mb-2 block">Password</label>
+												<input type="password" id="password" name="password" class="form-control py-2" required minlength="6" />
+											</div>
+											<div>
+												<label class="text-dark dark:text-white font-semibold mb-2 block">Confirm Password</label>
+												<input type="password" id="confirm_password" name="confirm_password" class="form-control py-2" required />
+											</div>
+											<div>
+												<label class="cursor-pointer label flex items-center">
+													<input type="checkbox" class="border-bordergray w-4 h-4 rounded-sm text-primary dark:border-darkborder bg-transparent dark:checked:bg-primary dark:checked:border-primary focus:ring-0 focus:ring-offset-0" required id="terms">
+													<span class="label-text ms-2 text-link dark:text-darklink">I agree to the <a href="#" class="text-primary">Terms & Conditions</a></span>
+												</label>
+											</div>
+											<button type="submit" class="btn btn-md py-3 btn-primary">Create Account</button>
+											<div id="error-message" class="hidden text-danger text-sm mt-2"></div>
+											<div class="text-center mt-2.5">
+												<span class="text-base font-medium text-link dark:text-darklink">Already have an account? <a
+														href="/login"
+														class="text-primary font-medium text-sm ms-2">Sign In</a></span>
+											</div>
+										</div>
+									</form>
+
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</main>
+			<!-- Main Content End -->
+		</div>
+		<!--end of project-->
+	</main>
+	<div class="hidden">
+		@@include("../partials/customizer.html")
+	</div>
+	@@include("../partials/scripts.html")
+
+	<script>
+		const API_BASE_URL = 'http://localhost:8000';
+
+		document.getElementById('register-form').addEventListener('submit', async function(e) {
+			e.preventDefault();
+			
+			const fullName = document.getElementById('full_name').value;
+			const email = document.getElementById('email').value;
+			const password = document.getElementById('password').value;
+			const confirmPassword = document.getElementById('confirm_password').value;
+			const errorDiv = document.getElementById('error-message');
+			const submitBtn = e.target.querySelector('button[type="submit"]');
+			
+			// Hide error
+			errorDiv.classList.add('hidden');
+			errorDiv.textContent = '';
+			
+			// Validate passwords match
+			if (password !== confirmPassword) {
+				errorDiv.textContent = 'Passwords do not match.';
+				errorDiv.classList.remove('hidden');
+				return;
+			}
+			
+			// Validate password length
+			if (password.length < 6) {
+				errorDiv.textContent = 'Password must be at least 6 characters long.';
+				errorDiv.classList.remove('hidden');
+				return;
+			}
+			
+			// Disable submit button
+			const originalText = submitBtn.textContent;
+			submitBtn.disabled = true;
+			submitBtn.textContent = 'Creating account...';
+			
+			try {
+				const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ 
+						full_name: fullName,
+						email, 
+						password 
+					})
+				});
+				
+				const data = await response.json();
+				
+				if (response.ok) {
+					// Store token
+					if (data.access_token) {
+						localStorage.setItem('auth_token', data.access_token);
+						localStorage.setItem('user_email', data.user?.email || email);
+					}
+					
+					// Redirect to dashboard
+					window.location.href = '@@webRoot/new-capture/';
+				} else {
+					// Show error
+					errorDiv.textContent = data.detail || 'Registration failed. Please try again.';
+					errorDiv.classList.remove('hidden');
+				}
+			} catch (error) {
+				console.error('Registration error:', error);
+				errorDiv.textContent = 'Network error. Please try again.';
+				errorDiv.classList.remove('hidden');
+			} finally {
+				submitBtn.disabled = false;
+				submitBtn.textContent = originalText;
+			}
+		});
+
+		// Check if already logged in
+		if (localStorage.getItem('auth_token')) {
+			window.location.href = '@@webRoot/new-capture/';
+		}
+	</script>
+
+</body>
+
+</html>
+

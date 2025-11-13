@@ -24,10 +24,29 @@ def init_database():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Create users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            full_name TEXT NOT NULL,
+            hashed_password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_active INTEGER DEFAULT 1
+        )
+    """)
+    
+    # Create index on email for faster lookups
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
+    """)
+    
     # Create runs table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS runs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             run_label TEXT NOT NULL,
             linkedin_url TEXT NOT NULL,
             ai_criteria TEXT,
@@ -36,7 +55,8 @@ def init_database():
             total_leads INTEGER DEFAULT 0,
             selected_leads INTEGER DEFAULT 0,
             status TEXT DEFAULT 'success',
-            error_message TEXT
+            error_message TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
     
@@ -83,6 +103,16 @@ def init_database():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at)
     """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_runs_user_id ON runs(user_id)
+    """)
+    
+    # Add user_id column to runs table if it doesn't exist (migration)
+    try:
+        cursor.execute("ALTER TABLE runs ADD COLUMN user_id INTEGER")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_runs_user_id ON runs(user_id)")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     conn.commit()
     conn.close()
@@ -96,7 +126,8 @@ def create_run(
     leads: List[Dict],
     selected_lead_ids: List[str],
     status: str = 'success',
-    error_message: Optional[str] = None
+    error_message: Optional[str] = None,
+    user_id: Optional[int] = None
 ) -> int:
     """
     Create a new run and save all leads
@@ -119,9 +150,9 @@ def create_run(
     try:
         # Insert run
         cursor.execute("""
-            INSERT INTO runs (run_label, linkedin_url, ai_criteria, total_leads, selected_leads, status, error_message)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (run_label, linkedin_url, ai_criteria, len(leads), len(selected_lead_ids), status, error_message))
+            INSERT INTO runs (run_label, linkedin_url, ai_criteria, total_leads, selected_leads, status, error_message, user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (run_label, linkedin_url, ai_criteria, len(leads), len(selected_lead_ids), status, error_message, user_id))
         
         run_id = cursor.lastrowid
         
@@ -220,22 +251,37 @@ def get_run(run_id: int) -> Optional[Dict]:
     return run
 
 
-def get_all_runs(limit: int = 100, offset: int = 0) -> List[Dict]:
-    """Get all runs with summary information"""
+def get_all_runs(limit: int = 100, offset: int = 0, user_id: Optional[int] = None) -> List[Dict]:
+    """Get all runs with summary information, optionally filtered by user_id"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("""
-        SELECT 
-            r.*,
-            COUNT(rl.id) as total_leads_count,
-            SUM(CASE WHEN rl.is_selected = 1 THEN 1 ELSE 0 END) as selected_leads_count
-        FROM runs r
-        LEFT JOIN run_leads rl ON r.id = rl.run_id
-        GROUP BY r.id
-        ORDER BY r.created_at DESC
-        LIMIT ? OFFSET ?
-    """, (limit, offset))
+    if user_id:
+        # Include runs for this user OR old runs without user_id (created before authentication)
+        cursor.execute("""
+            SELECT 
+                r.*,
+                COUNT(rl.id) as total_leads_count,
+                SUM(CASE WHEN rl.is_selected = 1 THEN 1 ELSE 0 END) as selected_leads_count
+            FROM runs r
+            LEFT JOIN run_leads rl ON r.id = rl.run_id
+            WHERE r.user_id = ? OR r.user_id IS NULL
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+            LIMIT ? OFFSET ?
+        """, (user_id, limit, offset))
+    else:
+        cursor.execute("""
+            SELECT 
+                r.*,
+                COUNT(rl.id) as total_leads_count,
+                SUM(CASE WHEN rl.is_selected = 1 THEN 1 ELSE 0 END) as selected_leads_count
+            FROM runs r
+            LEFT JOIN run_leads rl ON r.id = rl.run_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+            LIMIT ? OFFSET ?
+        """, (limit, offset))
     
     runs = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -324,6 +370,91 @@ def delete_run(run_id: int) -> bool:
         conn.rollback()
         conn.close()
         raise e
+
+
+# User management functions
+def create_user(email: str, full_name: str, hashed_password: str) -> int:
+    """Create a new user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO users (email, full_name, hashed_password)
+            VALUES (?, ?, ?)
+        """, (email, full_name, hashed_password))
+        
+        user_id = cursor.lastrowid
+        conn.commit()
+        print(f"[Database] Created user {user_id} with email {email}")
+        return user_id
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        raise ValueError(f"User with email {email} already exists")
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email: str) -> Optional[Dict]:
+    """Get a user by email"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return dict(row)
+    return None
+
+
+def get_user_by_id(user_id: int) -> Optional[Dict]:
+    """Get a user by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return dict(row)
+    return None
+
+
+def update_user(user_id: int, **kwargs) -> bool:
+    """Update user information"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    allowed_fields = ['full_name', 'hashed_password', 'is_active']
+    updates = []
+    values = []
+    
+    for key, value in kwargs.items():
+        if key in allowed_fields:
+            updates.append(f"{key} = ?")
+            values.append(value)
+    
+    if not updates:
+        conn.close()
+        return False
+    
+    values.append(user_id)
+    cursor.execute(f"""
+        UPDATE users 
+        SET {', '.join(updates)}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, values)
+    
+    conn.commit()
+    updated = cursor.rowcount > 0
+    conn.close()
+    return updated
 
 
 # Initialize database on import

@@ -146,10 +146,32 @@ function cleanDist(callback) {
 
 // Browser Sync Serve
 function browsersyncServe(callback) {
+  // Middleware to redirect /login and /register
+  const redirectMiddleware = function(req, res, next) {
+    // Redirect /login to /auth/login.html
+    if (req.url === '/login' || req.url === '/login/') {
+      res.writeHead(301, { 'Location': '/auth/login.html' });
+      res.end();
+      return;
+    }
+    // Redirect /register to /auth/register.html
+    if (req.url === '/register' || req.url === '/register/') {
+      res.writeHead(301, { 'Location': '/auth/register.html' });
+      res.end();
+      return;
+    }
+    next();
+  };
+
   browsersync.init({
     server: {
       baseDir: [paths.temp.basetemp, paths.src.basesrc, paths.base.base],
-    },
+      index: "index.html",
+      serveStaticOptions: {
+        extensions: ['html']
+      },
+      middleware: [redirectMiddleware]
+    }
   });
   callback();
 }
