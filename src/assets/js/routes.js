@@ -61,7 +61,7 @@ const Routes = {
     {
       id: 'leads',
       page: 'leads',
-      path: '/index.html',
+      path: '/leads/',
       title: 'Leads',
       icon: 'ti-users',
       active: false
