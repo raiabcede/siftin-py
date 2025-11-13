@@ -65,8 +65,26 @@
 			</nav>
 
 			<!-- Hero Section -->
-			<section class="py-20 bg-gradient-to-br from-lightprimary/10 dark:from-darkprimary/10 to-white dark:to-dark">
-				<div class="container mx-auto px-4">
+			<section class="relative py-20 min-h-[600px] flex items-center overflow-hidden">
+				<!-- Video Background -->
+				<video 
+					autoplay 
+					muted 
+					loop 
+					playsinline
+					class="absolute inset-0 w-full h-full object-cover z-0"
+					id="hero-video"
+				>
+					<source src="assets/videos/hero-background.mp4" type="video/mp4">
+					<source src="assets/videos/hero-background.webm" type="video/webm">
+					<!-- Fallback background if video doesn't load -->
+				</video>
+				
+				<!-- Overlay for better text readability -->
+				<div class="absolute inset-0 bg-gradient-to-br from-white/70 dark:from-dark/70 via-white/50 dark:via-dark/50 to-white/70 dark:to-dark/70 z-10"></div>
+				
+				<!-- Content -->
+				<div class="container mx-auto px-4 relative z-20">
 					<div class="max-w-4xl mx-auto text-center">
 						<h1 class="text-5xl md:text-6xl font-bold text-dark dark:text-white mb-6">
 							AI-Powered LinkedIn Lead Generation
@@ -629,6 +647,28 @@
 				// Reset form
 				form.reset();
 			}
+
+			// Video background initialization
+			document.addEventListener('DOMContentLoaded', function() {
+				const heroVideo = document.getElementById('hero-video');
+				if (heroVideo) {
+					// Ensure video plays (some browsers require this)
+					heroVideo.play().catch(function(error) {
+						console.log('Video autoplay prevented:', error);
+						// Try to play on user interaction
+						document.addEventListener('click', function playVideo() {
+							heroVideo.play().catch(() => {});
+							document.removeEventListener('click', playVideo);
+						}, { once: true });
+					});
+
+					// Handle video loading errors
+					heroVideo.addEventListener('error', function() {
+						console.log('Video failed to load, using fallback background');
+						// The overlay will provide a fallback background
+					});
+				}
+			});
 		</script>
 	</body>
 </html>
