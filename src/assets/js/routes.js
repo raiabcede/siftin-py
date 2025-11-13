@@ -93,7 +93,7 @@ const Routes = {
     {
       id: 'settings',
       page: 'settings',
-      path: '/index.html',
+      path: '/settings/',
       title: 'Settings',
       icon: 'ti-settings',
       active: false
