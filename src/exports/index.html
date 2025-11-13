@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-color-theme="Green_Theme" class="selected"
+	data-layout="vertical" data-boxed-layout="full" data-card="shadow">
+
+	<head>
+		@@include("../partials/head.html")
+		<title>Runs - Siftin</title>
+	</head>
+
+	<body class="DEFAULT_THEME  bg-white dark:bg-dark">
+		<main>
+			<!--start the project-->
+			<div id="main-wrapper" class="flex">
+
+				<aside id="application-sidebar-brand"
+					class="hs-overlay hs-overlay-open:translate-x-0 -translate-x-full xl:rtl:-translate-x-0 rtl:translate-x-full  left-0 rtl:left-auto rtl:right-0 transform hidden xl:block xl:translate-x-0 xl:end-auto xl:bottom-0 fixed top-0 with-vertical  left-sidebar transition-all duration-300 h-screen z-[2] flex-shrink-0 border-r rtl:border-l rtl:border-r-0 w-[270px] border-border dark:border-darkborder bg-white dark:bg-dark">
+					@@include("../partials/sidebar.html",{ "page": "runs" })
+				</aside>
+				<div class="page-wrapper w-full" role="main">
+					<!--  Header Start -->
+					<header
+						class="sticky top-header top-0 inset-x-0 z-[1] flex flex-wrap md:justify-start md:flex-nowrap text-sm bg-white dark:bg-dark ">
+					<div
+						class="with-vertical w-full">@@include("../partials/header.html")</div>
+					<div class="with-horizontal w-full">
+						<div class="bg-white dark:bg-dark shadow-md dark:shadow-dark-md">
+							<div class="container">
+								@@include("../partials/horizontal-header.html")
+							</div>
+						</div>
+					</div>
+					</header>
+					<!--  Header End -->
+
+					<!-- Horizontal Header Menu -->
+					<aside class="with-horizontal lg:flex hidden">
+						@@include("../partials/horizontal-sidebar.html", { "page": "runs",
+						})
+					</aside>
+					<!-- Horizontal Header Menu End -->
+
+					<!-- Main Content -->
+					<main class="h-full max-w-full pt-6">
+						<div class="container full-container py-5">
+							<!-- Page Title -->
+							<div class="mb-8">
+								<div class="flex items-center justify-between mb-2">
+									<div>
+										<h1 class="text-3xl font-bold text-dark dark:text-white mb-2">Capture Runs</h1>
+										<p class="text-base text-link dark:text-darklink">View and manage all your LinkedIn lead capture runs</p>
+									</div>
+									<button onclick="refreshRuns()" class="btn btn-primary flex items-center cursor-pointer">
+										<i class="ti ti-refresh mr-2"></i> Refresh
+									</button>
+								</div>
+							</div>
+
+							<!-- Loading Indicator -->
+							<div id="loading-indicator" class="hidden mb-6">
+								<div class="card">
+									<div class="card-body text-center py-8">
+										<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+										<p class="mt-4 text-link dark:text-darklink">Loading runs...</p>
+									</div>
+								</div>
+							</div>
+
+							<!-- Error Message -->
+							<div id="error-message" class="hidden mb-6">
+								<div class="card bg-lightdanger dark:bg-darkdanger border border-danger">
+									<div class="card-body">
+										<div class="flex items-center gap-3">
+											<i class="ti ti-alert-circle text-danger text-xl"></i>
+											<div>
+												<h5 class="font-semibold text-danger mb-1">Error</h5>
+												<p id="error-text" class="text-sm text-danger"></p>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Empty State -->
+							<div id="empty-state" class="hidden">
+								<div class="card">
+									<div class="card-body text-center py-12">
+										<i class="ti ti-player-play text-6xl text-link dark:text-darklink mb-4 opacity-50"></i>
+										<h3 class="text-xl font-semibold text-dark dark:text-white mb-2">No runs found</h3>
+										<p class="text-link dark:text-darklink mb-6">You haven't created any capture runs yet.</p>
+										<a href="../new-capture/" class="btn btn-primary">
+											<i class="ti ti-circle-plus mr-2"></i> Create New Capture
+										</a>
+									</div>
+								</div>
+							</div>
+
+							<!-- Runs List -->
+							<div id="runs-list" class="space-y-4">
+								<!-- Runs will be dynamically inserted here -->
+							</div>
+
+						</div>
+					</main>
+					<!-- Main Content End -->
+
+				</div>
+			</div>
+			<!--end of project-->
+		</main>
+		@@include("../partials/header-components/mobile-menu.html")
+		@@include("../partials/header-components/dd-searchbar.html")
+		@@include("../partials/header-components/dd-cart.html")
+		@@include("../partials/customizer.html")
+		@@include("../partials/scripts.html")
+		
+		<script>
+			// API Configuration
+			const API_BASE_URL = 'http://localhost:8000';
+			
+			// Helper function for API calls
+			async function apiCall(endpoint, method = 'GET', data = null) {
+				try {
+					const options = {
+						method,
+						headers: {
+							'Content-Type': 'application/json',
+						}
+					};
+					
+					if (data) {
+						options.body = JSON.stringify(data);
+					}
+					
+					const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+					
+					if (!response.ok) {
+						const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+						throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+					}
+					
+					return await response.json();
+				} catch (error) {
+					console.error('[API] Error:', error);
+					throw error;
+				}
+			}
+
+			// Show/hide loading indicator
+			function showLoading(show) {
+				const loadingEl = document.getElementById('loading-indicator');
+				if (loadingEl) {
+					loadingEl.classList.toggle('hidden', !show);
+				}
+			}
+
+			// Show error message
+			function showError(message) {
+				const errorEl = document.getElementById('error-message');
+				const errorText = document.getElementById('error-text');
+				if (errorEl && errorText) {
+					errorText.textContent = message;
+					errorEl.classList.remove('hidden');
+				}
+			}
+
+			// Hide error message
+			function hideError() {
+				const errorEl = document.getElementById('error-message');
+				if (errorEl) {
+					errorEl.classList.add('hidden');
+				}
+			}
+
+			// Format date
+			function formatDate(dateString) {
+				if (!dateString) return 'N/A';
+				const date = new Date(dateString);
+				return date.toLocaleString();
+			}
+
+			// Format LinkedIn URL for display
+			function formatLinkedInUrl(url) {
+				if (!url) return 'N/A';
+				if (url.length > 60) {
+					return url.substring(0, 57) + '...';
+				}
+				return url;
+			}
+
+			// Load and display runs
+			async function loadRuns() {
+				showLoading(true);
+				hideError();
+				
+				try {
+					const response = await apiCall('/api/capture/runs');
+					const runs = response.runs || [];
+					
+					showLoading(false);
+					
+					const runsListEl = document.getElementById('runs-list');
+					const emptyStateEl = document.getElementById('empty-state');
+					
+					if (runs.length === 0) {
+						if (runsListEl) runsListEl.innerHTML = '';
+						if (emptyStateEl) emptyStateEl.classList.remove('hidden');
+						return;
+					}
+					
+					if (emptyStateEl) emptyStateEl.classList.add('hidden');
+					
+					if (runsListEl) {
+						runsListEl.innerHTML = runs.map(run => `
+							<div class="card hover:shadow-lg transition-shadow" data-run-id="${run.id}">
+								<div class="card-body">
+									<div class="flex items-start justify-between">
+										<div class="flex-1">
+											<div class="flex items-center gap-3 mb-3">
+												<h3 class="text-xl font-semibold text-dark dark:text-white">${escapeHtml(run.run_label)}</h3>
+												<span class="px-2 py-1 text-xs font-medium rounded-md bg-lightprimary dark:bg-darkprimary text-primary">
+													ID: ${run.id}
+												</span>
+												${getStatusBadge(run.status)}
+											</div>
+											${run.error_message ? `
+											<div class="mb-3 p-3 rounded-md bg-lightdanger dark:bg-darkdanger border border-danger">
+												<p class="text-sm text-danger font-semibold mb-1">Error:</p>
+												<p class="text-sm text-danger">${escapeHtml(run.error_message)}</p>
+											</div>
+											` : ''}
+											
+											<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+												<div>
+													<p class="text-sm text-link dark:text-darklink mb-1">LinkedIn URL</p>
+													<a href="${escapeHtml(run.linkedin_url)}" target="_blank" class="text-sm text-primary hover:underline break-all">
+														${escapeHtml(formatLinkedInUrl(run.linkedin_url))}
+													</a>
+												</div>
+												<div>
+													<p class="text-sm text-link dark:text-darklink mb-1">AI Criteria</p>
+													<p class="text-sm text-dark dark:text-white">${escapeHtml(run.ai_criteria || 'N/A')}</p>
+												</div>
+												<div>
+													<p class="text-sm text-link dark:text-darklink mb-1">Created</p>
+													<p class="text-sm text-dark dark:text-white">${formatDate(run.created_at)}</p>
+												</div>
+												<div>
+													<p class="text-sm text-link dark:text-darklink mb-1">Leads</p>
+													<p class="text-sm text-dark dark:text-white">
+														<span class="font-semibold">${run.total_leads}</span> total
+														<span class="mx-2">•</span>
+														<span class="font-semibold text-primary">${run.selected_leads}</span> selected
+													</p>
+												</div>
+											</div>
+										</div>
+										
+										<div class="flex flex-col gap-2 ml-4">
+											<button onclick="viewRun(${run.id})" class="btn btn-outline btn-sm flex items-center">
+												<i class="ti ti-eye mr-2"></i> View
+											</button>
+											${run.status === 'success' && run.total_leads > 0 ? `
+											<button onclick="exportRun(${run.id})" class="btn btn-primary btn-sm flex items-center">
+												<i class="ti ti-download mr-2"></i> Export
+											</button>
+											` : ''}
+											<button onclick="deleteRun(${run.id})" class="btn btn-outline btn-sm text-danger hover:bg-lightdanger dark:hover:bg-darkdanger flex items-center">
+												<i class="ti ti-trash mr-2"></i> Delete
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						`).join('');
+					}
+				} catch (error) {
+					showLoading(false);
+					showError(error.message || 'Failed to load runs');
+					console.error('[Runs] Error loading runs:', error);
+				}
+			}
+
+			// View run details
+			async function viewRun(runId) {
+				try {
+					const run = await apiCall(`/api/capture/runs/${runId}`);
+					
+					// Create modal or navigate to detail page
+					// For now, show in alert (you can enhance this with a modal)
+					const message = `
+Run: ${run.run_label}
+LinkedIn URL: ${run.linkedin_url}
+AI Criteria: ${run.ai_criteria || 'N/A'}
+Created: ${formatDate(run.created_at)}
+Total Leads: ${run.total_leads}
+Selected Leads: ${run.selected_leads}
+					`.trim();
+					
+					alert(message);
+				} catch (error) {
+					showError(error.message || 'Failed to load run details');
+				}
+			}
+
+			// Export run
+			async function exportRun(runId) {
+				try {
+					showLoading(true);
+					const response = await apiCall(`/api/capture/runs/${runId}/export?selected_only=true`, 'POST');
+					
+					if (response.download_url) {
+						window.location.href = `${API_BASE_URL}${response.download_url}`;
+					}
+					
+					showLoading(false);
+				} catch (error) {
+					showLoading(false);
+					showError(error.message || 'Failed to export run');
+				}
+			}
+
+			// Delete run
+			async function deleteRun(runId) {
+				if (!confirm('Are you sure you want to delete this run? This action cannot be undone.')) {
+					return;
+				}
+				
+				try {
+					showLoading(true);
+					await apiCall(`/api/capture/runs/${runId}`, 'DELETE');
+					showLoading(false);
+					loadRuns(); // Reload the list
+				} catch (error) {
+					showLoading(false);
+					showError(error.message || 'Failed to delete run');
+				}
+			}
+
+			// Refresh runs
+			function refreshRuns() {
+				loadRuns();
+			}
+
+			// Get status badge HTML
+			function getStatusBadge(status) {
+				if (!status) status = 'success';
+				const statusLower = status.toLowerCase();
+				
+				let bgClass = 'bg-lightprimary dark:bg-darkprimary';
+				let textClass = 'text-success';
+				let icon = 'ti-check';
+				let label = 'Success';
+				
+				if (statusLower === 'failed') {
+					bgClass = 'bg-lightdanger dark:bg-darkdanger';
+					textClass = 'text-danger';
+					icon = 'ti-x';
+					label = 'Failed';
+				} else if (statusLower === 'partial') {
+					bgClass = 'bg-lightwarning dark:bg-darkwarning';
+					textClass = 'text-warning';
+					icon = 'ti-alert-triangle';
+					label = 'Partial';
+				}
+				
+				return `
+					<span class="px-2 py-1 text-xs font-medium rounded-md ${bgClass} ${textClass} flex items-center gap-1">
+						<i class="ti ${icon}"></i>
+						${label}
+					</span>
+				`;
+			}
+
+			// Escape HTML to prevent XSS
+			function escapeHtml(text) {
+				if (!text) return '';
+				const div = document.createElement('div');
+				div.textContent = text;
+				return div.innerHTML;
+			}
+
+			// Load runs on page load
+			document.addEventListener('DOMContentLoaded', function() {
+				loadRuns();
+			});
+		</script>
+	</body>
+</html>
+

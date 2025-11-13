@@ -53,9 +53,9 @@ const Routes = {
     {
       id: 'results',
       page: 'results',
-      path: '/index.html',
+      path: '/results/',
       title: 'Results',
-      icon: 'ti-chart-bar',
+      icon: 'ti-search',
       active: false
     },
     {
